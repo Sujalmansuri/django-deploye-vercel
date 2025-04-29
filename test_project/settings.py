@@ -132,3 +132,34 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 # https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+
+
+
+import json
+
+GOOGLE_CREDENTIALS = {
+"web": {
+        "client_id": "1068026159405-o1odeh7fclabtjf0vjvba19smjc24j7l.apps.googleusercontent.com",
+        "project_id": "djangoauthproject1",
+        "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+        "token_uri": "https://oauth2.googleapis.com/token",
+        "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+        "client_secret": "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",
+        "redirect_uris": [
+            "http://127.0.0.1:8000/complete/google/"
+        ],
+        "javascript_origins": [
+            "http://127.0.0.1:8000"
+        ]
+    }
+ }
+
+GITHUB_CLIENT_ID = 'Ov23liPtjE6b5xMO3yhm'
+GITHUB_CLIENT_SECRET = '93c281b80b12c7d26dd864df27fe8dac78c0e6c3'
+import os
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+LOGIN_REDIRECT_URL = '/dashboard/'  # or 'dashboard' if you're using URL name
