@@ -150,7 +150,8 @@ GOOGLE_CREDENTIALS = {
         "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
         "client_secret": "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",
         "redirect_uris": [
-            "http://127.0.0.1:8000/complete/google/"
+            "http://127.0.0.1:8000/complete/google/",
+            "https://instadatacom.vercel.app/complete/google/",
         ],
         "javascript_origins": [
             "http://127.0.0.1:8000"
