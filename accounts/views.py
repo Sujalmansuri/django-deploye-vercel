@@ -151,8 +151,8 @@ def google_login(request):
             'https://www.googleapis.com/auth/userinfo.email',
             'openid'
         ],
-        redirect_uri = ["https://instadatacom.vercel.app/complete/google/",
-        "https://instadatacom.vercel.app/google/login/"]
+        redirect_uri = "https://instadatacom.vercel.app/complete/google/",
+        
  # 🔴 CHANGED
     )
 
