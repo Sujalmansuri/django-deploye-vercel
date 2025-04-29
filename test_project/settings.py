@@ -137,6 +137,21 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
+import os
+from dotenv import load_dotenv
+
+load_dotenv()  # Load .env variables
+
+GOOGLE_CREDENTIALS = {
+    "web": {
+        "client_id": os.getenv("GOOGLE_CLIENT_ID"),
+        "client_secret": os.getenv("GOOGLE_CLIENT_SECRET"),
+        "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+        "token_uri": "https://oauth2.googleapis.com/token",
+        "redirect_uris": [],
+        "javascript_origins": []
+    }
+}
 
 
 import json
