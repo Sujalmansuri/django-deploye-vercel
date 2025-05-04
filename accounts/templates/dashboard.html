@@ -84,35 +84,40 @@
         </button>
     </div>
 
-    <!-- File List -->
-    {% if files %}
-        {% for file in files %}
-            <div class="file-card">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <div class="file-title">{{ file.title }}</div>
-                        <small class="text-muted">Uploaded at: {{ file.uploaded_at|date:"M d, Y H:i" }}</small>
-                    </div>
-                    <div class="file-actions">
-                        <a href="{{ file.file.url }}" class="btn btn-primary" download>
-                            <i class="fa fa-download"></i> Download
-                        </a>
-                        <form action="{% url 'delete_file' file.id %}" method="post" style="display:inline;">
-                            {% csrf_token %}
-                            <button type="submit" class="btn btn-danger">
-                                <i class="fa fa-trash"></i> Delete
-                            </button>
-                        </form>
-                    </div>
-                </div>
+   <!-- File List -->
+{% if files %}
+{% for file in files %}
+    <div class="file-card">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <div class="file-title">{{ file.title }}</div>
+                <small class="text-muted">Uploaded at: {{ file.uploaded_at|date:"M d, Y H:i" }}</small>
             </div>
-        {% endfor %}
-    {% else %}
-        <div class="alert alert-warning" role="alert">
-            No files available for this view.
+            <div class="file-actions">
+                {% if file.file %}
+                    <!-- ✅✅ ADDED THIS CHECK TO AVOID ERROR -->
+                    <a href="{{ file.file.url }}" class="btn btn-primary" download>
+                        <i class="fa fa-download"></i> Download
+                    </a>
+                {% else %}
+                    <!-- ✅✅ OPTIONAL: Show placeholder if no file -->
+                    <span class="text-muted">No file available</span>
+                {% endif %}
+                <form action="{% url 'delete_file' file.id %}" method="post" style="display:inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fa fa-trash"></i> Delete
+                    </button>
+                </form>
+            </div>
         </div>
-    {% endif %}
+    </div>
+{% endfor %}
+{% else %}
+<div class="alert alert-warning" role="alert">
+    No files available for this view.
 </div>
+{% endif %}
 
 <!-- Upload File Modal -->
 <div class="modal fade" id="uploadModal" tabindex="-1" aria-labelledby="uploadModalLabel" aria-hidden="true">
