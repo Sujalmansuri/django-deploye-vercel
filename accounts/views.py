@@ -29,6 +29,7 @@ supabase = create_client(SUPABASE_URL, SUPABASE_API_KEY)
 os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
 
 # Redirect if already logged in
+
 def redirect_if_logged_in(request):
     if request.session.get('user_email'):
         return redirect('dashboard')
@@ -81,17 +82,32 @@ def handle_uploaded_file(f):
     # Return the path or public URL
     return f"uploads/{file_name}"
 
+from datetime import timedelta
 
-def upload(request):
+def upload(request): 
     if request.method == 'POST':
         title = request.POST['title']
-        file = request.FILES['file']  # 🔴 Rename this to avoid conflict
+        file = request.FILES['file']
         user_email = request.session.get('user_email')
         user = User_Data.objects.get(email=user_email)
 
-        UploadedFile.objects.create(title=title, file=file, user=user)  # 🔴 Now this works
-        return redirect('dashboard')
+        # Read file bytes
+        file_bytes = file.read()
+        file_name = file.name
 
+        # Upload to Supabase
+        bucket = supabase.storage.from_("uploads")
+        bucket.upload(file_name, file_bytes)
+
+        # Get signed URL (valid for 1 hour for example)
+        signed_url_data = bucket.create_signed_url(file_name, timedelta(hours=1))
+        file_url = signed_url_data.get('signedURL')
+
+        # Save in DB
+        UploadedFile.objects.create(title=title, file_url=file_url, user=user)
+
+        return redirect('dashboard')
+    
 def download_file(request, file_id):
     try:
         uploaded_file = UploadedFile.objects.get(pk=file_id)
