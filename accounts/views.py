@@ -91,19 +91,39 @@ def handle_uploaded_file(f):
     return f"uploads/{file_name}"
 
 # Your Django view
+import os
+from datetime import datetime
+from django.http import JsonResponse
+from supabase import create_client
+from django.conf import settings
+
+# Initialize Supabase client
+supabase = create_client(settings.SUPABASE_URL, settings.SUPABASE_KEY)
+
 def upload(request):
-    if request.method == 'POST' and request.FILES['file']:
-        uploaded_file = request.FILES['file']
-        file_path = handle_uploaded_file(uploaded_file)
+    if request.method == "POST":
+        file = request.FILES.get("file")
+        if not file:
+            return JsonResponse({"error": "No file provided"}, status=400)
 
-        # Store file path into Supabase database table
+        # Create a unique filename
+        file_ext = os.path.splitext(file.name)[1]
+        file_name = f"{datetime.now().strftime('%Y%m%d%H%M%S')}_{file.name}"
+
+        # Upload file to Supabase Storage bucket (e.g., "uploads")
+        supabase.storage.from_("uploads").upload(file_name, file, file.content_type)
+
+        # Get public URL (optional, if your bucket allows public access)
+        file_url = supabase.storage.from_("uploads").get_public_url(file_name)
+
+        # Save file info in Supabase database
         data = {
-            'file': file_path,
-            'uploaded_at': datetime.now().isoformat()
+            "file": file_url,  # or use file_name if you only need the path
+            "created_at": datetime.now().isoformat()
         }
-        supabase.table("uploadedfile").insert(data).execute()
+        supabase.table("UploadedFile").insert(data).execute()
 
-        return JsonResponse({'status': 'success', 'file_path': file_path})
+        return JsonResponse({"message": "File uploaded successfully", "file_url": file_url})
 
 
 # Upload view - Handling file uploads to Supabase
