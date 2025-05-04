@@ -4,7 +4,8 @@ from django.http import HttpResponse
 from .models import User_Data,CustomUser
 from .models import UploadedFile  # ✅ Instead of File
 from .forms import FileUploadForm  # ✅ Now this will work
-
+from django.core.files.storage import default_storage
+from django.core.files.base import ContentFile
 from django.contrib.auth.hashers import make_password, check_password
 from django.conf import settings
 from django.urls import reverse
@@ -73,6 +74,26 @@ def dashboard(request):
         'files': files,
         'filter_type': filter_type,
     })
+
+
+def handle_uploaded_file(f):
+    # Save the file to the default storage (which can be the local file system, S3, etc.)
+    file_path = default_storage.save('uploads/' + f.name, ContentFile(f.read()))
+    return file_path
+
+def upload_file(request):
+    if request.method == 'POST' and request.FILES['file']:
+        uploaded_file = request.FILES['file']
+        file_path = handle_uploaded_file(uploaded_file)
+
+        # Save file details to the database
+        new_file = UploadedFile.objects.create(
+            file_name=uploaded_file.name,
+            file_path=file_path,
+        )
+
+        return HttpResponse(f"File uploaded successfully! Saved at: {file_path}")
+    return render(request, 'upload.html')  # Your upload form page
 
 
 # Upload view - Handling file uploads to Supabase
