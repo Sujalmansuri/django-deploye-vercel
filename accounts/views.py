@@ -110,8 +110,7 @@ from datetime import timedelta
 class UploadFileForm(forms.Form):
     title = forms.CharField(max_length=255)
     file = forms.FileField()
-    
-@login_required(login_url='login')  # Force login if not authenticated
+
 def upload(request):
     if request.method == "POST" and request.FILES.get("file"):
         form = UploadFileForm(request.POST, request.FILES)
