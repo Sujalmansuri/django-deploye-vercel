@@ -2,7 +2,6 @@ from django.contrib import admin
 from django.urls import path
 from django.conf import settings
 from django.conf.urls.static import static
-
 from accounts import views  # Import views from accounts app
 
 urlpatterns = [
@@ -16,7 +15,6 @@ urlpatterns = [
     path('upload/', views.upload, name='upload'),
     path('delete/<int:file_id>/', views.delete_file, name='delete_file'),
     path('file_list/', views.file_list, name='file_list'),
-
 
     # Google OAuth Routes
     path('google/login/', views.google_login, name='google_login'),
