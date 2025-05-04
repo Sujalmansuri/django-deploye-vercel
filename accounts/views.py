@@ -116,7 +116,7 @@ def upload(request):
         # Get public URL
         public_url = supabase.storage.from_("uploads").get_public_url(file_path)
 
-        return HttpResponse(f"Uploaded successfully! Public URL: <a href='{public_url}'>{public_url}</a>")
+        return redirect('dashboard')
 
     return render(request, "upload.html")
 
