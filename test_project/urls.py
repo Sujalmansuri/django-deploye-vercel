@@ -14,6 +14,8 @@ urlpatterns = [
     path('logout/', views.logout_view, name='logout'),
     path('dashboard/', views.dashboard, name='dashboard'),
     path('upload/', views.upload, name='upload'),
+    path('delete/<int:file_id>/', views.delete_file, name='delete_file'),
+
 
     # Google OAuth Routes
     path('google/login/', views.google_login, name='google_login'),
@@ -21,10 +23,6 @@ urlpatterns = [
 
     # Email/Password Login Handler
     path('login-handler/', views.login_view, name='login'),
-
-    # GitHub Login
-    path('github/login/', views.github_login, name='github_login'),
-    path('github/callback/', views.github_callback, name='github_callback'),
 
     # File Download
     path('download/<int:file_id>/', views.download_file, name='download_file'),

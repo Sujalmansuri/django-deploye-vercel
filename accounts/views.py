@@ -121,21 +121,20 @@ def upload(request):
     return render(request, "upload.html")
 
 
-# # Upload view - Handling file uploads to Supabase
-# def upload(request):
-#     if request.method == 'POST':
-#         title = request.POST['title']
-#         file = request.FILES['file']
-#         user_email = request.session.get('user_email')
-#         user = User_Data.objects.get(email=user_email)
+def delete_file(request, filename):
+    if request.method == 'POST':
+        try:
+            response = supabase.storage.from_('uploads').remove([f'uploads/{filename}'])
+            return redirect('dashboard')  # Replace with your actual dashboard route
+        except Exception as e:
+            return HttpResponse(f"Error deleting file: {e}")
+    return HttpResponse("Invalid request")
 
-#         uploaded_file = UploadedFile(title=title, user=user)
-#         uploaded_file.save()
-
-#         # Upload the file to Supabase
-#         uploaded_file.upload_to_supabase(file)
-
-#         return redirect('dashboard')
+def delete_file(request, file_id):
+    if request.method == 'POST':
+        file = get_object_or_404(UploadedFile, id=file_id)
+        file.delete()  # Also remove from Supabase if applicable
+    return redirect('dashboard') 
 
 # Download File
 from django.http import FileResponse, Http404
@@ -294,68 +293,3 @@ def login_submit(request):
             return render(request, 'login.html', {'error': 'User does not exist'})
 
     return redirect('login_page')
-
-def github_login(request):
-    """
-    Redirect to GitHub's OAuth authorization page
-    """
-    client_id = settings.GITHUB_CLIENT_ID
-    redirect_uri = 'http://127.0.0.1:8000/github/callback/'  # The callback URL
-    github_auth_url = f"https://github.com/login/oauth/authorize?client_id={client_id}&redirect_uri={redirect_uri}&scope=user:email"
-    return redirect(github_auth_url)
-
-def github_callback(request):
-    """
-    Handle GitHub's OAuth callback and authenticate the user
-    """
-    code = request.GET.get('code')  # Get the code from the URL parameters
-    if not code:
-        return JsonResponse({'error': 'No code provided'}, status=400)
-
-    # Step 1: Exchange code for access token
-    token_url = 'https://github.com/login/oauth/access_token'
-    headers = {'Accept': 'application/json'}
-    data = {
-        'client_id': settings.GITHUB_CLIENT_ID,
-        'client_secret': settings.GITHUB_CLIENT_SECRET,
-        'code': code
-    }
-    token_response = requests.post(token_url, headers=headers, data=data)
-    access_token = token_response.json().get('access_token')
-
-    if not access_token:
-        return JsonResponse({'error': 'Failed to get access token'}, status=400)
-
-    # Step 2: Use the access token to fetch user information
-    user_info_url = 'https://api.github.com/user'
-    email_url = 'https://api.github.com/user/emails'
-    headers = {'Authorization': f'token {access_token}'}
-
-    user_info = requests.get(user_info_url, headers=headers).json()
-    user_emails = requests.get(email_url, headers=headers).json()
-
-    primary_email = None
-    for email in user_emails:
-        if email.get('primary'):
-            primary_email = email.get('email')
-            break
-
-    if not primary_email:
-        return JsonResponse({'error': 'Email not found'}, status=400)
-
-    # Step 3: Create or get the user from the database
-    user, created = CustomUser.objects.get_or_create(email=primary_email)
-    if created:
-        user.name = user_info.get('name') or user_info.get('login')
-        user.save()
-
-    # Step 4: Log the user in (custom login logic)
-    request.session['user_id'] = user.id
-    request.session['user_email'] = user.email
-
-    # Redirect to the dashboard or any authenticated view
-    return redirect('dashboard')  # Adjust according to your app's URL configuration
-def logout_view(request):
-    # Clear the session
-    request.session.flush()
-    return redirect('/')  # Redirect to homepage after logout
