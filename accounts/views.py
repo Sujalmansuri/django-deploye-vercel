@@ -14,6 +14,19 @@ from google.auth.transport import requests as google_requests
 import requests
 import os
 from django.http import JsonResponse
+import os
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
+
+# Now you can access your variables from the environment
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_API_KEY = os.getenv("SUPABASE_API_KEY")
+
+# Ensure that the variables are loaded correctly
+print(f"SUPABASE_URL: {SUPABASE_URL}, SUPABASE_API_KEY: {SUPABASE_API_KEY}")
+
 
 # Ensure OAuth works in dev environment
 os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
@@ -62,15 +75,20 @@ def dashboard(request):
     })
 
 
-# Upload view
+# Upload view - Handling file uploads to Supabase
 def upload(request):
     if request.method == 'POST':
         title = request.POST['title']
-        file = request.FILES['file']  # 🔴 Rename this to avoid conflict
+        file = request.FILES['file']
         user_email = request.session.get('user_email')
         user = User_Data.objects.get(email=user_email)
 
-        UploadedFile.objects.create(title=title, file=file, user=user)  # 🔴 Now this works
+        uploaded_file = UploadedFile(title=title, user=user)
+        uploaded_file.save()
+
+        # Upload the file to Supabase
+        uploaded_file.upload_to_supabase(file)
+
         return redirect('dashboard')
 
 # Download File
