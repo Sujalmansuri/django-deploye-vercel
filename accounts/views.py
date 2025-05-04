@@ -85,15 +85,6 @@ def upload(request):
         uploaded_file = request.FILES["file"]
         title = request.POST.get("title")
 
-        user_id = request.session.get("user_id")
-        if not user_id:
-            return redirect("login")
-
-        try:
-            user = User_Data.objects.get(id=user_id)
-        except User_Data.DoesNotExist:
-            return redirect("login")
-
         file_instance = UploadedFile(title=title, file=uploaded_file, user=user)
         file_instance.save()
 
