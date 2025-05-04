@@ -111,7 +111,7 @@ class UploadFileForm(forms.Form):
     title = forms.CharField(max_length=255)
     file = forms.FileField()
     
-  # Force login if not authenticated
+  
 def upload(request):
     if request.method == "POST" and request.FILES.get("file"):
         form = UploadFileForm(request.POST, request.FILES)
