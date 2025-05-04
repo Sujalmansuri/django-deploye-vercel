@@ -82,14 +82,24 @@ def handle_uploaded_file(f):
     return f"uploads/{file_name}"
 
 def upload(request):
-    if request.method == "POST" and request.FILES["file"]:
+    if request.method == "POST" and request.FILES.get("file"):
         uploaded_file = request.FILES["file"]
         title = request.POST.get("title")
 
-        # Create an instance of the UploadedFile model
-        file_instance = UploadedFile(title=title, file=uploaded_file, user=request.user)
+        # ✅ Get the logged-in user's ID from session
+        user_id = request.session.get("user_id")
+        if not user_id:
+            # User not logged in
+            return redirect("login")
 
-        # Save the file to Supabase and store the file URL in the model
+        # ✅ Fetch the user from your custom User_Data model
+        try:
+            user = User_Data.objects.get(id=user_id)
+        except User_Data.DoesNotExist:
+            return redirect("login")
+
+        # ✅ Save the file instance
+        file_instance = UploadedFile(title=title, file=uploaded_file, user=user)
         file_instance.save()
 
         return redirect('dashboard')
