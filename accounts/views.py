@@ -83,30 +83,27 @@ def handle_uploaded_file(f):
     return f"uploads/{file_name}"
 
 from datetime import timedelta
-def upload(request): 
+def upload(request):
     if request.method == 'POST':
         title = request.POST['title']
         file = request.FILES['file']
         user_email = request.session.get('user_email')
         user = User_Data.objects.get(email=user_email)
 
+        # Convert file to bytes and upload to Supabase
         file_bytes = file.read()
+        bucket = supabase.storage.from_("uploads")  # Ensure 'uploads' bucket exists
         file_name = file.name
-
-        # Upload to Supabase
-        bucket = supabase.storage.from_("uploads")
         bucket.upload(file_name, file_bytes)
 
-        # Use integer seconds (e.g., 3600 for 1 hour)
-        signed_url_data = bucket.create_signed_url(file_name, 3600)
-        file_url = signed_url_data.get('signedURL')
+        # Store the file URL or other relevant details in the database
+        file_url = bucket.get_public_url(file_name).get('publicURL')
 
-        # Save in DB
+        # Create an entry in the database (you can adjust your model to store URLs)
         UploadedFile.objects.create(title=title, file_url=file_url, user=user)
 
         return redirect('dashboard')
 
-    
 def download_file(request, file_id):
     try:
         uploaded_file = UploadedFile.objects.get(pk=file_id)
