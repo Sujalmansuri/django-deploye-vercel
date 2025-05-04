@@ -111,24 +111,27 @@ class UploadFileForm(forms.Form):
     title = forms.CharField(max_length=255)
     file = forms.FileField()
     
+@login_required(login_url='login')  # Force login if not authenticated
 def upload(request):
     if request.method == "POST" and request.FILES.get("file"):
         form = UploadFileForm(request.POST, request.FILES)
         if form.is_valid():
             file_title = form.cleaned_data["title"]
             file = form.cleaned_data["file"]
-            user = request.user  # Get the current logged-in user
+            user = request.user
 
             try:
-                # Step 1: Save file and metadata
-                UploadedFile.objects.create(
+                uploaded_file = UploadedFile.objects.create(
                     title=file_title,
                     file=file,
-                    user=user
+                    user=user  # This will now be a real User instance
                 )
 
-                # ✅ Step 2: Redirect to dashboard
-                return redirect('dashboard')
+                return render(request, "upload.html", {
+                    "form": form,
+                    "success": "File uploaded successfully!",
+                    "file": uploaded_file
+                })
 
             except Exception as e:
                 return render(request, "upload.html", {
@@ -136,11 +139,6 @@ def upload(request):
                     "error": "An error occurred during file upload.",
                     "message": str(e)
                 })
-        else:
-            return render(request, "upload.html", {
-                "form": form,
-                "error": "Form is not valid."
-            })
     else:
         form = UploadFileForm()
 
