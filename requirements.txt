@@ -12,6 +12,7 @@ requests==2.32.3
 python-dotenv==0.21.0
 psycopg2-binary==2.9.10
 supabase==2.15.1
+<<<<<<< HEAD
 supafunc==0.9.4Django==5.1.6
 django-crispy-forms==1.7.2
 django-environ==0.12.0
