@@ -16,10 +16,10 @@ import os
 from dotenv import load_dotenv
 from datetime import datetime
 from django.contrib.auth.decorators import login_required
-from django.shortcuts import render, redirect
 from django import forms
 from .models import UploadedFile
 from django.contrib.auth.models import User
+
 # Load environment variables from .env file
 load_dotenv()
 
@@ -32,7 +32,6 @@ supabase = create_client(SUPABASE_URL, SUPABASE_API_KEY)
 os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
 
 # Redirect if already logged in
-
 def redirect_if_logged_in(request):
     if request.session.get('user_email'):
         return redirect('dashboard')
@@ -51,17 +50,6 @@ def signup_page(request):
 
 @login_required
 def dashboard(request):
-    return render(request, 'dashboard.html')
-
-def file_list(request):
-    # just reuse the dashboard logic (optional)
-    return redirect('dashboard')  # ✅ Safer fallback
-
-
-def dashboard(request):
-    if 'user_email' not in request.session:
-        return redirect('login')
-
     user_email = request.session['user_email']
     filter_type = request.GET.get('filter', 'myfiles')
 
@@ -71,7 +59,7 @@ def dashboard(request):
         form = UploadFileForm(request.POST, request.FILES)
         if form.is_valid():
             uploaded_file = form.save(commit=False)
-            uploaded_file.user = request.user  # or use your custom user if applicable
+            uploaded_file.user = request.user  # Use the authenticated user
             uploaded_file.save()
             success = "File uploaded successfully!"
         else:
@@ -92,25 +80,23 @@ def dashboard(request):
         'success': success,
         'error': error,
     })
+
+# Handle uploaded file and store in Supabase
 def handle_uploaded_file(f):
-    # Save file to storage (Supabase Storage)
     file_name = f.name
     file_content = f.read()
 
-    # Upload to Supabase Storage bucket named 'uploads'
     result = supabase.storage.from_('uploads').upload(file_name, file_content, {"content-type": f.content_type})
 
     if result.get("error"):
         raise Exception("Upload failed: " + str(result["error"]))
 
-    # Return the path or public URL
     return f"uploads/{file_name}"
 
-from datetime import timedelta
 class UploadFileForm(forms.Form):
     title = forms.CharField(max_length=255)
     file = forms.FileField()
-    
+
 @login_required(login_url='login')  # Force login if not authenticated
 def upload(request):
     if request.method == "POST" and request.FILES.get("file"):
@@ -124,7 +110,7 @@ def upload(request):
                 uploaded_file = UploadedFile.objects.create(
                     title=file_title,
                     file=file,
-                    user=user  # This will now be a real User instance
+                    user=user
                 )
 
                 return render(request, "upload.html", {
