@@ -216,4 +216,5 @@ def login_view(request):
         except User_Data.DoesNotExist:
             return render(request, 'login.html', {'error': 'User does not exist'})
 
+
     return redirect('login_page')
