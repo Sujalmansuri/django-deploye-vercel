@@ -11,4 +11,5 @@ gunicorn==23.0.0
 requests==2.32.3
 python-dotenv==0.21.0
 psycopg2-binary==2.9.10
-
+supabase==2.15.1
+supabase-py==1.0.3
