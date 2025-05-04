@@ -83,25 +83,14 @@ def handle_uploaded_file(f):
 
 
 def upload(request):
-    # Ensure the user is logged in via session
-    user_id = request.session.get("user_id")
-    if not user_id:
-        return redirect("login")
-
-    try:
-        user = User_Data.objects.get(id=user_id)
-    except User_Data.DoesNotExist:
-        return redirect("login")
-
-    if request.method == "POST" and request.FILES.get("file"):
+    if request.method == "POST" and request.FILES["file"]:
         uploaded_file = request.FILES["file"]
         title = request.POST.get("title")
 
-        # Create file instance and assign user before calling save()
-        file_instance = UploadedFile(title=title, file=uploaded_file, user=user)
-        file_instance.save()  # This will now correctly call the custom save()
+        file_instance = UploadedFile(title=title, file=uploaded_file, user=request.user)
+        file_instance.save()
 
-        return redirect("dashboard")
+        return redirect('dashboard')
 
     return render(request, "upload.html")
 
