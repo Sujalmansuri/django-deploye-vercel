@@ -97,8 +97,10 @@ from django.http import JsonResponse
 from supabase import create_client
 from django.conf import settings
 
+SUPABASE_URL = os.getenv('SUPABASE_URL')  # e.g., https://xyzcompany.supabase.co
+SUPABASE_API_KEY = os.getenv('SUPABASE_API_KEY') 
 # Initialize Supabase client
-supabase = create_client(settings.SUPABASE_URL, settings.SUPABASE_KEY)
+supabase = create_client(SUPABASE_URL,SUPABASE_API_KEY)
 
 def upload(request):
     if request.method == "POST":
