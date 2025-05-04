@@ -96,14 +96,34 @@ def handle_uploaded_file(f):
 class UploadFileForm(forms.Form):
     title = forms.CharField(max_length=255)
     file = forms.FileField()
+from django.shortcuts import render, redirect, get_object_or_404
+from django.http import HttpResponse, JsonResponse, Http404
+from .models import UploadedFile
+from .forms import UploadFileForm
+from django.contrib.auth.decorators import login_required
+from supabase import create_client
+import os
+from dotenv import load_dotenv
 
-@login_required(login_url='login')  # Force login if not authenticated
+# Load environment variables
+load_dotenv()
+
+# Supabase client setup
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_API_KEY = os.getenv("SUPABASE_API_KEY")
+supabase = create_client(SUPABASE_URL, SUPABASE_API_KEY)
+
+@login_required(login_url='login')
 def upload(request):
-    if request.method == "POST" and request.FILES.get("file"):
+    success = error = None
+    form = UploadFileForm()
+
+    if request.method == 'POST' and request.FILES.get('file'):
         form = UploadFileForm(request.POST, request.FILES)
+
         if form.is_valid():
-            file_title = form.cleaned_data["title"]
-            file = form.cleaned_data["file"]
+            file_title = form.cleaned_data['title']
+            file = form.cleaned_data['file']
             user = request.user
 
             try:
@@ -112,23 +132,21 @@ def upload(request):
                     file=file,
                     user=user
                 )
-
-                return render(request, "upload.html", {
-                    "form": form,
-                    "success": "File uploaded successfully!",
-                    "file": uploaded_file
-                })
-
+                success = "File uploaded successfully!"
             except Exception as e:
-                return render(request, "upload.html", {
-                    "form": form,
-                    "error": "An error occurred during file upload.",
-                    "message": str(e)
-                })
-    else:
-        form = UploadFileForm()
+                error = f"An error occurred during file upload: {e}"
 
-    return render(request, "upload.html", {"form": form})
+    return render(request, 'upload.html', {'form': form, 'success': success, 'error': error})
+
+@login_required(login_url='login')
+def delete_file(request, file_id):
+    try:
+        file = get_object_or_404(UploadedFile, id=file_id)
+        file.delete()  # Also remove from Supabase if applicable
+        return redirect('dashboard')
+    except Exception as e:
+        print(f"Error deleting file: {e}")
+        return redirect('dashboard', {"error": "Failed to delete file"})
 
 def download_file(request, file_id):
     try:
@@ -139,11 +157,6 @@ def download_file(request, file_id):
     except UploadedFile.DoesNotExist:
         raise Http404("File not found")
 
-def delete_file(request, file_id):
-    if request.method == 'POST':
-        file = get_object_or_404(UploadedFile, id=file_id)
-        file.delete()  # Also remove from Supabase if applicable
-        return redirect('dashboard')
 
 # Logout View
 def logout_view(request):
