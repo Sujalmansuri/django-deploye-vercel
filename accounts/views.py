@@ -83,7 +83,6 @@ def handle_uploaded_file(f):
     return f"uploads/{file_name}"
 
 from datetime import timedelta
-
 def upload(request): 
     if request.method == 'POST':
         title = request.POST['title']
@@ -91,7 +90,6 @@ def upload(request):
         user_email = request.session.get('user_email')
         user = User_Data.objects.get(email=user_email)
 
-        # Read file bytes
         file_bytes = file.read()
         file_name = file.name
 
@@ -99,14 +97,15 @@ def upload(request):
         bucket = supabase.storage.from_("uploads")
         bucket.upload(file_name, file_bytes)
 
-        # Get signed URL (valid for 1 hour for example)
-        signed_url_data = bucket.create_signed_url(file_name, timedelta(hours=1))
+        # Use integer seconds (e.g., 3600 for 1 hour)
+        signed_url_data = bucket.create_signed_url(file_name, 3600)
         file_url = signed_url_data.get('signedURL')
 
         # Save in DB
         UploadedFile.objects.create(title=title, file_url=file_url, user=user)
 
         return redirect('dashboard')
+
     
 def download_file(request, file_id):
     try:
