@@ -83,16 +83,14 @@ def handle_uploaded_file(f):
 
 
 def upload(request):
-    if request.method == "POST" and request.FILES["file"]:
-        uploaded_file = request.FILES["file"]
-        title = request.POST.get("title")
+    if request.method == 'POST':
+        title = request.POST['title']
+        file = request.FILES['file']  # 🔴 Rename this to avoid conflict
+        user_email = request.session.get('user_email')
+        user = User_Data.objects.get(email=user_email)
 
-        file_instance = UploadedFile(title=title, file=uploaded_file, user=request.user)
-        file_instance.save()
-
+        UploadedFile.objects.create(title=title, file=file, user=user)  # 🔴 Now this works
         return redirect('dashboard')
-
-    return render(request, "upload.html")
 
 def download_file(request, file_id):
     try:
