@@ -110,7 +110,7 @@ def upload(request):
         file_data = uploaded_file.read()
         file_path = f"{uploaded_file.name}"
 
-        response = supabase.storage.from_("uploads").upload(file_path, file_data, file_options={"content_type": uploaded_file.content_type}, upsert=True)
+        response = supabase.storage.from_("uploads").upload(file_path, file_data, file_options={"content_type": uploaded_file.content_type})
 
 
         # Get public URL
