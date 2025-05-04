@@ -15,7 +15,7 @@ class User_Data(models.Model):
     is_google_user = models.BooleanField(default=False)  # To track Google login users
     created_at = models.DateTimeField(default=now)  # Corrected from previous error
 
-  class UploadedFile(models.Model):
+class UploadedFile(models.Model):
     title = models.CharField(max_length=255)
     file = models.FileField(upload_to='uploads/', null=True, blank=True)  # Local fallback
     file_url = models.URLField(max_length=1024)  # Signed or public URL
@@ -47,6 +47,7 @@ class User_Data(models.Model):
             self.file_url = signed_url_data.get("signedURL")
 
         super().save(*args, **kwargs)
+
 
 class CustomUser(models.Model):
     email = models.EmailField(unique=True)
