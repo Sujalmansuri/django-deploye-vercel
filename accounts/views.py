@@ -83,30 +83,41 @@ def handle_uploaded_file(f):
     return f"uploads/{file_name}"
 
 from datetime import timedelta
+
 def upload(request):
-    if request.method == 'POST':
-        title = request.POST['title']
-        file = request.FILES['file']
-        user_email = request.session.get('user_email') 
-        user = User_Data.objects.get(email=user_email)
+    if request.method == "POST" and request.FILES["file"]:
+        file = request.FILES["file"]
+        
+        # Step 1: Initialize Supabase client
+        supabase = get_supabase_client()
 
-        # Upload to Supabase
-        file_bytes = file.read()
-        bucket = supabase.storage.from_("uploads")
-        file_name = file.name
-        bucket.upload(file_name, file_bytes)
+        # Step 2: Prepare file path (for example, store in "uploads" folder with the original filename)
+        file_path = f"uploads/{file.name}"
 
-        # ✅ Use signed URL instead of public URL
-        signed_url_data = bucket.create_signed_url(file_name, 3600)
-        file_url = signed_url_data.get('signedURL')
+        try:
+            # Step 3: Upload the file to Supabase
+            upload_res = supabase.storage.from_("uploads").upload(
+                file_path, file.read(), file_options={"content-type": file.content_type}
+            )
 
-        if file_url:
-            # ✅ Now this should not fail
-            UploadedFile.objects.create(title=title, file_url=file_url, user=user)
-        else:
-            print("Error: No signed URL returned from Supabase.")
+            # Step 4: Check for any errors during the upload
+            if upload_res.get("error"):
+                return render(request, "upload.html", {"error": "Upload failed!", "message": upload_res["error"]})
 
-        return redirect('dashboard')
+            # Step 5: Generate a signed URL to access the file
+            signed_url_res = supabase.storage.from_("uploads").create_signed_url(file_path, 60)  # Expiry time 60s
+
+            if signed_url_res.get("error"):
+                return render(request, "upload.html", {"error": "Failed to generate signed URL", "message": signed_url_res["error"]})
+
+            # Step 6: Return the signed URL for access
+            signed_url = signed_url_res["signedURL"]
+            return render(request, "upload.html", {"success": "File uploaded successfully!", "signed_url": signed_url})
+
+        except Exception as e:
+            return render(request, "upload.html", {"error": "An error occurred during file upload.", "message": str(e)})
+
+    return render(request, "upload.html")
 
 def download_file(request, file_id):
     try:
