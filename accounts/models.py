@@ -2,6 +2,7 @@ from django.db import models
 from django.utils.timezone import now
 import os
 from supabase import create_client
+from django.contrib.auth.models import User 
 
 # Initialize Supabase client
 SUPABASE_URL = os.getenv("SUPABASE_URL")
@@ -16,38 +17,10 @@ class User_Data(models.Model):
     created_at = models.DateTimeField(default=now)  # Corrected from previous error
 
 class UploadedFile(models.Model):
-    title = models.CharField(max_length=255)
-    file = models.FileField(upload_to='uploads/', null=True, blank=True)  # Local fallback
-    file_url = models.URLField(max_length=1024)  # Signed or public URL
-    uploaded_at = models.DateTimeField(auto_now_add=True)
-    user = models.ForeignKey(User_Data, on_delete=models.CASCADE)
-
-    def save(self, *args, **kwargs):
-        if self.file:
-            file_data = self.file.read()
-            file_name = self.file.name
-            file_path = f"uploads/{self.user.email}/{self.title}/{file_name}"
-
-            # Upload file to Supabase
-            upload_response = supabase.storage.from_("uploads").upload(
-                file_path,
-                file_data,
-                file_options={"content-type": self.file.content_type or "application/octet-stream"}
-            )
-
-            if upload_response.get("error"):
-                raise Exception(f"Upload failed: {upload_response['error']['message']}")
-
-            # Generate a signed URL (valid for 1 hour = 3600 seconds)
-            signed_url_data = supabase.storage.from_("uploads").create_signed_url(file_path, 3600)
-
-            if signed_url_data.get("error"):
-                raise Exception(f"Signed URL generation failed: {signed_url_data['error']['message']}")
-
-            self.file_url = signed_url_data.get("signedURL")
-
-        super().save(*args, **kwargs)
-
+    title = models.CharField(max_length=255)  # File title
+    file = models.FileField(upload_to='uploads/', null=True, blank=True)  # Local storage
+    uploaded_at = models.DateTimeField(auto_now_add=True)  # Timestamp of upload
+    user = models.ForeignKey(User, on_delete=models.CASCADE)  # Associated user
 
 class CustomUser(models.Model):
     email = models.EmailField(unique=True)

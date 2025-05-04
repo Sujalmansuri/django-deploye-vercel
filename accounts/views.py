@@ -16,7 +16,10 @@ import os
 from dotenv import load_dotenv
 from datetime import datetime
 from django.contrib.auth.decorators import login_required
-
+from django.shortcuts import render, redirect
+from django import forms
+from .models import UploadedFile
+from django.contrib.auth.models import User
 # Load environment variables from .env file
 load_dotenv()
 
@@ -50,7 +53,6 @@ def signup_page(request):
 def dashboard(request):
     return render(request, 'dashboard.html')
 
-# Dashboard - Lists uploaded files
 def dashboard(request):
     if 'user_email' not in request.session:
         return redirect('login')
@@ -58,6 +60,21 @@ def dashboard(request):
     user_email = request.session['user_email']
     filter_type = request.GET.get('filter', 'myfiles')
 
+    # Handle file upload
+    success = error = None
+    if request.method == 'POST':
+        form = UploadFileForm(request.POST, request.FILES)
+        if form.is_valid():
+            uploaded_file = form.save(commit=False)
+            uploaded_file.user = request.user  # or use your custom user if applicable
+            uploaded_file.save()
+            success = "File uploaded successfully!"
+        else:
+            error = "Error uploading file."
+    else:
+        form = UploadFileForm()
+
+    # File filtering
     if filter_type == 'all':
         files = UploadedFile.objects.all()
     else:
@@ -66,8 +83,10 @@ def dashboard(request):
     return render(request, 'dashboard.html', {
         'files': files,
         'filter_type': filter_type,
+        'form': form,
+        'success': success,
+        'error': error,
     })
-
 def handle_uploaded_file(f):
     # Save file to storage (Supabase Storage)
     file_name = f.name
@@ -83,41 +102,43 @@ def handle_uploaded_file(f):
     return f"uploads/{file_name}"
 
 from datetime import timedelta
-
+class UploadFileForm(forms.Form):
+    title = forms.CharField(max_length=255)
+    file = forms.FileField()
+    
 def upload(request):
     if request.method == "POST" and request.FILES["file"]:
-        file = request.FILES["file"]
-        
-        # Step 1: Initialize Supabase client
-        supabase = get_supabase_client()
+        form = UploadFileForm(request.POST, request.FILES)
+        if form.is_valid():
+            file_title = form.cleaned_data["title"]
+            file = form.cleaned_data["file"]
+            user = request.user  # Get the current logged-in user
 
-        # Step 2: Prepare file path (for example, store in "uploads" folder with the original filename)
-        file_path = f"uploads/{file.name}"
+            try:
+                # Step 1: Save the file and metadata in the database
+                uploaded_file = UploadedFile.objects.create(
+                    title=file_title,
+                    file=file,
+                    user=user
+                )
 
-        try:
-            # Step 3: Upload the file to Supabase
-            upload_res = supabase.storage.from_("uploads").upload(
-                file_path, file.read(), file_options={"content-type": file.content_type}
-            )
+                # Step 2: Success Message
+                return render(request, "upload.html", {
+                    "form": form,
+                    "success": "File uploaded successfully!",
+                    "file": uploaded_file  # You can display the uploaded file metadata if needed
+                })
 
-            # Step 4: Check for any errors during the upload
-            if upload_res.get("error"):
-                return render(request, "upload.html", {"error": "Upload failed!", "message": upload_res["error"]})
+            except Exception as e:
+                return render(request, "upload.html", {
+                    "form": form,
+                    "error": "An error occurred during file upload.",
+                    "message": str(e)
+                })
+    else:
+        form = UploadFileForm()
 
-            # Step 5: Generate a signed URL to access the file
-            signed_url_res = supabase.storage.from_("uploads").create_signed_url(file_path, 60)  # Expiry time 60s
-
-            if signed_url_res.get("error"):
-                return render(request, "upload.html", {"error": "Failed to generate signed URL", "message": signed_url_res["error"]})
-
-            # Step 6: Return the signed URL for access
-            signed_url = signed_url_res["signedURL"]
-            return render(request, "upload.html", {"success": "File uploaded successfully!", "signed_url": signed_url})
-
-        except Exception as e:
-            return render(request, "upload.html", {"error": "An error occurred during file upload.", "message": str(e)})
-
-    return render(request, "upload.html")
+    return render(request, "upload.html", {"form": form})
 
 def download_file(request, file_id):
     try:
