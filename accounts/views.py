@@ -17,14 +17,16 @@ from django.http import JsonResponse
 from supabase import create_client
 import os
 from dotenv import load_dotenv
+from datetime import datetime
 
-# Load environment variables from .env file
+# Load environment variables fr
+# om .env file
 load_dotenv()
 
 # Now you can access your variables from the environment
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_API_KEY = os.getenv("SUPABASE_API_KEY")
-supabase = create_client(url, key)
+supabase = create_client(SUPABASE_URL, SUPABASE_API_KEY)
 
 
 
