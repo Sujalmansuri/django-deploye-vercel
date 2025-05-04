@@ -104,28 +104,23 @@ supabase = create_client(SUPABASE_URL,SUPABASE_API_KEY)
 
 def upload(request):
     if request.method == "POST":
-        file = request.FILES.get("file")
-        if not file:
-            return JsonResponse({"error": "No file provided"}, status=400)
+        uploaded_file = request.FILES["file"]  # file input name="file"
+        
+        # Upload file to 'uploads' bucket
+        file_data = uploaded_file.read()
+        file_path = f"{uploaded_file.name}"
 
-        # Create a unique filename
-        file_ext = os.path.splitext(file.name)[1]
-        file_name = f"{datetime.now().strftime('%Y%m%d%H%M%S')}_{file.name}"
+        response = supabase.storage.from_("uploads").upload(file_path, file_data, {
+            "content-type": uploaded_file.content_type,
+            "upsert": True
+        })
 
-        # Upload file to Supabase Storage bucket (e.g., "uploads")
-        supabase.storage.from_("uploads").upload(file_name, file, file.content_type)
+        # Get public URL
+        public_url = supabase.storage.from_("uploads").get_public_url(file_path)
 
-        # Get public URL (optional, if your bucket allows public access)
-        file_url = supabase.storage.from_("uploads").get_public_url(file_name)
+        return HttpResponse(f"Uploaded successfully! Public URL: <a href='{public_url}'>{public_url}</a>")
 
-        # Save file info in Supabase database
-        data = {
-            "file": file_url,  # or use file_name if you only need the path
-            "created_at": datetime.now().isoformat()
-        }
-        supabase.table("UploadedFile").insert(data).execute()
-
-        return JsonResponse({"message": "File uploaded successfully", "file_url": file_url})
+    return render(request, "upload.html")
 
 
 # Upload view - Handling file uploads to Supabase
