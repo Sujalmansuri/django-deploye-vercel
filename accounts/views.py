@@ -123,21 +123,21 @@ def upload(request):
     return render(request, "upload.html")
 
 
-# Upload view - Handling file uploads to Supabase
-def upload(request):
-    if request.method == 'POST':
-        title = request.POST['title']
-        file = request.FILES['file']
-        user_email = request.session.get('user_email')
-        user = User_Data.objects.get(email=user_email)
+# # Upload view - Handling file uploads to Supabase
+# def upload(request):
+#     if request.method == 'POST':
+#         title = request.POST['title']
+#         file = request.FILES['file']
+#         user_email = request.session.get('user_email')
+#         user = User_Data.objects.get(email=user_email)
 
-        uploaded_file = UploadedFile(title=title, user=user)
-        uploaded_file.save()
+#         uploaded_file = UploadedFile(title=title, user=user)
+#         uploaded_file.save()
 
-        # Upload the file to Supabase
-        uploaded_file.upload_to_supabase(file)
+#         # Upload the file to Supabase
+#         uploaded_file.upload_to_supabase(file)
 
-        return redirect('dashboard')
+#         return redirect('dashboard')
 
 # Download File
 from django.http import FileResponse, Http404
