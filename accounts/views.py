@@ -1,62 +1,39 @@
-
 from django.shortcuts import render, redirect, get_object_or_404
-from django.http import HttpResponse
-from .models import User_Data,CustomUser
-from .models import UploadedFile  # ✅ Instead of File
-from .forms import FileUploadForm  # ✅ Now this will work
-from django.core.files.storage import default_storage
-from django.core.files.base import ContentFile
+from django.http import HttpResponse, JsonResponse, Http404
+from .models import User_Data, UploadedFile
 from django.contrib.auth.hashers import make_password, check_password
 from django.conf import settings
-from django.urls import reverse
 from google_auth_oauthlib.flow import Flow
 from google.oauth2 import id_token
 from google.auth.transport import requests as google_requests
-import requests
-from django.http import JsonResponse
 from supabase import create_client
 import os
 from dotenv import load_dotenv
-from datetime import datetime
 
-# Load environment variables fr
-# om .env file
+# Load environment variables
 load_dotenv()
 
-# Now you can access your variables from the environment
+# Supabase initialization
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_API_KEY = os.getenv("SUPABASE_API_KEY")
 supabase = create_client(SUPABASE_URL, SUPABASE_API_KEY)
 
-
-
-# Ensure OAuth works in dev environment
-os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
-
 # Redirect if already logged in
 def redirect_if_logged_in(request):
-    print("Session Data:", request.session.items())
     if request.session.get('user_email'):
         return redirect('dashboard')
+
 # Home Page
 def home(request):
     return render(request, 'Home.html')
-
 
 # Login Page
 def login_page(request):
     return render(request, 'login.html')
 
-
 # Signup Page
 def signup_page(request):
     return render(request, 'signup.html')
-
-from django.contrib.auth.decorators import login_required
-@login_required
-def dashboard(request):
-    return render(request, 'dashboard.html')
-
 
 # Dashboard - Lists uploaded files
 def dashboard(request):
@@ -76,87 +53,47 @@ def dashboard(request):
         'filter_type': filter_type,
     })
 
+# File Upload Helper
 def handle_uploaded_file(f):
-    # Save file to storage (Supabase Storage)
     file_name = f.name
     file_content = f.read()
-    
-    # Upload to Supabase Storage bucket named 'uploads'
     result = supabase.storage.from_('uploads').upload(file_name, file_content, {"content-type": f.content_type})
     
     if result.get("error"):
         raise Exception("Upload failed: " + str(result["error"]))
 
-    # Return the path or public URL
     return f"uploads/{file_name}"
 
-# Your Django view
-import os
-from datetime import datetime
-from django.http import JsonResponse
-from supabase import create_client
-from django.conf import settings
-
-SUPABASE_URL = os.getenv('SUPABASE_URL')  # e.g., https://xyzcompany.supabase.co
-SUPABASE_API_KEY = os.getenv('SUPABASE_API_KEY') 
-# Initialize Supabase client
-supabase = create_client(SUPABASE_URL,SUPABASE_API_KEY)
-
+# File Upload View
 def upload(request):
-    if request.method == "POST":
-        uploaded_file = request.FILES["file"]  # file input name="file"
-        
-        # Upload file to 'uploads' bucket
-        file_data = uploaded_file.read()
-        file_path = f"{uploaded_file.name}"
+    if request.method == "POST" and request.FILES["file"]:
+        uploaded_file = request.FILES["file"]
+        title = request.POST.get("title")
 
-        response = supabase.storage.from_("uploads").upload(file_path, file_data, file_options={"content_type": uploaded_file.content_type})
-
-
-        # Get public URL
-        public_url = supabase.storage.from_("uploads").get_public_url(file_path)
+        file_instance = UploadedFile(title=title, file=uploaded_file, user=request.user)
+        file_instance.save()
 
         return redirect('dashboard')
 
     return render(request, "upload.html")
 
+# Download File
+def download_file(request, file_id):
+    try:
+        uploaded_file = UploadedFile.objects.get(pk=file_id)
+        file_url = uploaded_file.file_url
+        return HttpResponse(f"File URL: {file_url}")
+    except UploadedFile.DoesNotExist:
+        raise Http404("File not found")
 
-def delete_file(request, filename):
-    if request.method == 'POST':
-        try:
-            response = supabase.storage.from_('uploads').remove([f'uploads/{filename}'])
-            return redirect('dashboard')  # Replace with your actual dashboard route
-        except Exception as e:
-            return HttpResponse(f"Error deleting file: {e}")
-    return HttpResponse("Invalid request")
-
+# Delete File
 def delete_file(request, file_id):
     if request.method == 'POST':
         file = get_object_or_404(UploadedFile, id=file_id)
         file.delete()  # Also remove from Supabase if applicable
-    return redirect('dashboard') 
+    return redirect('dashboard')
 
-# Download File
-from django.http import FileResponse, Http404
-def download_file(request, file_id):
-    try:
-        uploaded_file = UploadedFile.objects.get(pk=file_id)
-        file_path = uploaded_file.file.path
-        return FileResponse(open(file_path, 'rb'), as_attachment=True)
-    except UploadedFile.DoesNotExist:
-        raise Http404("File not found")
-
-from django.shortcuts import render
-from .models import UploadedFile
-
-
-# Logout View
-def logout_view(request):
-    request.session.flush()
-    return redirect('/')  # Ensure 'home' is named properly in urls.py
-
-
-    
+# Signup Submit
 def signup_submit(request):
     if request.method == 'POST':
         full_name = request.POST.get('full_name')
@@ -173,7 +110,7 @@ def signup_submit(request):
         user = User_Data.objects.create(
             full_name=full_name,
             email=email,
-            password=make_password(password),  # Hash password
+            password=make_password(password),
             is_google_user=False
         )
 
@@ -214,15 +151,11 @@ def google_login(request):
             'https://www.googleapis.com/auth/userinfo.email',
             'openid'
         ],
-        redirect_uri = "https://instadatacom.vercel.app/complete/google/",
-        #https://instadatacom.vercel.app/complete/google/
- # 🔴 CHANGED
+        redirect_uri="https://yourdomain.com/complete/google/"
     )
-
     authorization_url, state = flow.authorization_url()
     request.session['state'] = state
     return redirect(authorization_url)
-
 
 # Google Callback
 def google_callback(request):
@@ -233,17 +166,12 @@ def google_callback(request):
             'https://www.googleapis.com/auth/userinfo.profile',
             'openid'
         ],
-        redirect_uri="https://instadatacom.vercel.app/complete/google/" 
- # 🔴 CHANGED
+        redirect_uri="https://yourdomain.com/complete/google/"
     )
-
     flow.fetch_token(authorization_response=request.build_absolute_uri())
-
     credentials = flow.credentials
     try:
-        id_info = id_token.verify_oauth2_token(
-            credentials.id_token, google_requests.Request()
-        )
+        id_info = id_token.verify_oauth2_token(credentials.id_token, google_requests.Request())
     except ValueError:
         return redirect("login_page")
 
@@ -264,32 +192,10 @@ def google_callback(request):
     request.session["user_name"] = name
     request.session["user_picture"] = picture
 
-    return redirect('dashboard')  # 🔴 FIXED: redirect to dashboard after Google login
-
-
+    return redirect('dashboard')
 
 # Logout
 def logout_view(request):
     request.session.flush()
     return redirect('/')
 
-# Login Submit
-def login_submit(request):
-    if request.method == 'POST':
-        email = request.POST.get('email')
-        password = request.POST.get('password')
-
-        try:
-            user = User_Data.objects.get(email=email)  # 🔴 FIXED: changed User to User_Data
-
-            if check_password(password, user.password):
-                request.session['user_email'] = user.email
-                request.session['user_name'] = user.full_name
-                return redirect('dashboard')
-            else:
-                return render(request, 'login.html', {'error': 'Invalid credentials'})
-
-        except User_Data.DoesNotExist:
-            return render(request, 'login.html', {'error': 'User does not exist'})
-
-    return redirect('login_page')

@@ -15,28 +15,29 @@ class User_Data(models.Model):
     is_google_user = models.BooleanField(default=False)  # To track Google login users
     created_at = models.DateTimeField(default=now)  # Corrected from previous error
 
-    
+     
 class UploadedFile(models.Model):
     title = models.CharField(max_length=255)
-    file = models.FileField(upload_to='uploads/')
+    file = models.FileField(upload_to='uploads/', null=True, blank=True)  # Not used directly for Supabase
+    file_url = models.URLField(max_length=1024)  # To store the URL of the file in Supabase
     uploaded_at = models.DateTimeField(auto_now_add=True)
     user = models.ForeignKey(User_Data, on_delete=models.CASCADE)
 
-    
-    def upload_to_supabase(self, file):
-        """ Upload file to Supabase Storage and store the file URL """
-        file_path = f"uploads/{self.user.email}/{self.title}/{file.name}"
-
-        # Upload the file to Supabase
-        upload_response = supabase.storage.from_('uploads').upload(file_path, file)
-
-        if upload_response.get("error"):
-            raise Exception(f"Error uploading file: {upload_response['error']['message']}")
-
-        # Get the file URL
-        self.file_url = supabase.storage.from_('uploads').get_public_url(file_path)["publicURL"]
-        self.save()
+    def save(self, *args, **kwargs):
+        """ Override save method to upload file to Supabase and store the URL """
+        if self.file:
+            file_data = self.file.read()
+            file_path = f"uploads/{self.user.email}/{self.title}/{self.file.name}"
+            upload_response = supabase.storage.from_("uploads").upload(file_path, file_data, file_options={"content_type": self.file.content_type})
+            
+            if upload_response.get("error"):
+                raise Exception(f"Error uploading file: {upload_response['error']['message']}")
+            
+            # Store the public URL of the file in file_url
+            self.file_url = supabase.storage.from_("uploads").get_public_url(file_path)["publicURL"]
         
+        super(UploadedFile, self).save(*args, **kwargs)
+
 class CustomUser(models.Model):
     email = models.EmailField(unique=True)
     name = models.CharField(max_length=255, blank=True, null=True)
