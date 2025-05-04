@@ -13,8 +13,8 @@ from google_auth_oauthlib.flow import Flow
 from google.oauth2 import id_token
 from google.auth.transport import requests as google_requests
 import requests
-import os
 from django.http import JsonResponse
+from supabase import create_client
 import os
 from dotenv import load_dotenv
 
@@ -24,9 +24,8 @@ load_dotenv()
 # Now you can access your variables from the environment
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_API_KEY = os.getenv("SUPABASE_API_KEY")
+supabase = create_client(url, key)
 
-# Ensure that the variables are loaded correctly
-print(f"SUPABASE_URL: {SUPABASE_URL}, SUPABASE_API_KEY: {SUPABASE_API_KEY}")
 
 
 # Ensure OAuth works in dev environment
@@ -75,25 +74,34 @@ def dashboard(request):
         'filter_type': filter_type,
     })
 
-
 def handle_uploaded_file(f):
-    # Save the file to the default storage (which can be the local file system, S3, etc.)
-    file_path = default_storage.save('uploads/' + f.name, ContentFile(f.read()))
-    return file_path
+    # Save file to storage (Supabase Storage)
+    file_name = f.name
+    file_content = f.read()
+    
+    # Upload to Supabase Storage bucket named 'uploads'
+    result = supabase.storage.from_('uploads').upload(file_name, file_content, {"content-type": f.content_type})
+    
+    if result.get("error"):
+        raise Exception("Upload failed: " + str(result["error"]))
 
-def upload_file(request):
+    # Return the path or public URL
+    return f"uploads/{file_name}"
+
+# Your Django view
+def upload(request):
     if request.method == 'POST' and request.FILES['file']:
         uploaded_file = request.FILES['file']
         file_path = handle_uploaded_file(uploaded_file)
 
-        # Save file details to the database
-        new_file = UploadedFile.objects.create(
-            file_name=uploaded_file.name,
-            file_path=file_path,
-        )
+        # Store file path into Supabase database table
+        data = {
+            'file': file_path,
+            'uploaded_at': datetime.now().isoformat()
+        }
+        supabase.table("uploadedfile").insert(data).execute()
 
-        return HttpResponse(f"File uploaded successfully! Saved at: {file_path}")
-    return render(request, 'upload.html')  # Your upload form page
+        return JsonResponse({'status': 'success', 'file_path': file_path})
 
 
 # Upload view - Handling file uploads to Supabase
