@@ -87,20 +87,24 @@ def upload(request):
     if request.method == 'POST':
         title = request.POST['title']
         file = request.FILES['file']
-        user_email = request.session.get('user_email')
+        user_email = request.session.get('user_email') 
         user = User_Data.objects.get(email=user_email)
 
-        # Convert file to bytes and upload to Supabase
+        # Upload to Supabase
         file_bytes = file.read()
-        bucket = supabase.storage.from_("uploads")  # Ensure 'uploads' bucket exists
+        bucket = supabase.storage.from_("uploads")
         file_name = file.name
         bucket.upload(file_name, file_bytes)
 
-        # Store the file URL or other relevant details in the database
-        file_url = bucket.get_public_url(file_name).get('publicURL')
+        # ✅ Use signed URL instead of public URL
+        signed_url_data = bucket.create_signed_url(file_name, 3600)
+        file_url = signed_url_data.get('signedURL')
 
-        # Create an entry in the database (you can adjust your model to store URLs)
-        UploadedFile.objects.create(title=title, file_url=file_url, user=user)
+        if file_url:
+            # ✅ Now this should not fail
+            UploadedFile.objects.create(title=title, file_url=file_url, user=user)
+        else:
+            print("Error: No signed URL returned from Supabase.")
 
         return redirect('dashboard')
 
