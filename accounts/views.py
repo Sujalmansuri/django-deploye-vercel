@@ -85,7 +85,7 @@ def upload(request):
         uploaded_file = request.FILES["file"]
         title = request.POST.get("title")
 
-        file_instance = UploadedFile(title=title, file=uploaded_file, user=user)
+        file_instance = UploadedFile(title=title, file=uploaded_file)
         file_instance.save()
 
         return redirect("dashboard")  # Should show the uploaded file
