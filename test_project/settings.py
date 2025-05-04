@@ -24,7 +24,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-8dd%%7^2!-vxrysa!rxps&q=$!*4n6gtaifflild$0hhh3h7@8'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
+
 
 
 ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'instadatacom.vercel.app']
@@ -182,3 +183,16 @@ LOGIN_REDIRECT_URL = '/dashboard/'  # or 'dashboard' if you're using URL name
 
 SUPABASE_URL = os.getenv('SUPABASE_URL')  # e.g., https://xyzcompany.supabase.co
 SUPABASE_API_KEY = os.getenv('SUPABASE_API_KEY')  # API key from your Supabase project
+
+
+AUTHENTICATION_BACKENDS = (
+    'social_core.backends.google.GoogleOAuth2',
+    'django.contrib.auth.backends.ModelBackend',  # Keep the default authentication backend
+)
+
+SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = os.getenv('GOOGLE_CLIENT_ID')
+SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = os.getenv('GOOGLE_CLIENT_SECRET')
+
+SOCIAL_AUTH_GOOGLE_OAUTH2_SCOPE = [
+    'email', 'profile',
+]
