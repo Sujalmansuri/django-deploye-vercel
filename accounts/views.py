@@ -199,3 +199,24 @@ def logout_view(request):
     request.session.flush()
     return redirect('/')
 
+
+# Login Submit
+def login_submit(request):
+    if request.method == 'POST':
+        email = request.POST.get('email')
+        password = request.POST.get('password')
+
+        try:
+            user = User_Data.objects.get(email=email)  # 🔴 FIXED: changed User to User_Data
+
+            if check_password(password, user.password):
+                request.session['user_email'] = user.email
+                request.session['user_name'] = user.full_name
+                return redirect('dashboard')
+            else:
+                return render(request, 'login.html', {'error': 'Invalid credentials'})
+
+        except User_Data.DoesNotExist:
+            return render(request, 'login.html', {'error': 'User does not exist'})
+
+    return redirect('login_page')
