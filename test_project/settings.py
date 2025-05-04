@@ -28,7 +28,7 @@ DEBUG = True
 
 
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'instadatacom.vercel.app']
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'instadatacom.vercel.app','instadata-4uu2awzab-sujalmansuri42-gmailcoms-projects.vercel.app',]  # ✅ Vercel preview/production domain]
 
 
 
@@ -95,7 +95,7 @@ DATABASES = {
         'NAME': os.getenv('DB_NAME'),
         'USER': os.getenv('DB_USER'),
         'PASSWORD': os.getenv('DB_PASSWORD'),
-        'HOST': os.getenv('DB_HOST'),
+        'HOST': os.getenv('DB_HOST', 'localhost'),
         'PORT': os.getenv('DB_PORT', '6543'),   
         'OPTIONS': {
             'sslmode': 'require',  # ✅ Enforces SSL for Supabase
