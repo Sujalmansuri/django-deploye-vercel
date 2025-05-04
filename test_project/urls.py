@@ -15,7 +15,8 @@ urlpatterns = [
     path('dashboard/', views.dashboard, name='dashboard'),
     path('upload/', views.upload, name='upload'),
     path('delete/<int:file_id>/', views.delete_file, name='delete_file'),
-  
+    path('file_list/', views.file_list, name='file_list'),
+
 
     # Google OAuth Routes
     path('google/login/', views.google_login, name='google_login'),
