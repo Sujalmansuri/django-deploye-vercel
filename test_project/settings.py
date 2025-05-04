@@ -178,3 +178,7 @@ MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 LOGIN_REDIRECT_URL = '/dashboard/'  # or 'dashboard' if you're using URL name
+
+
+SUPABASE_URL = os.getenv('SUPABASE_URL')  # e.g., https://xyzcompany.supabase.co
+SUPABASE_API_KEY = os.getenv('SUPABASE_API_KEY')  # API key from your Supabase project
