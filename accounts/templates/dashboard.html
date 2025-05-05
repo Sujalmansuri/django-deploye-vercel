@@ -110,6 +110,10 @@
                         {% else %}
                             <span class="text-muted">No file available</span>
                         {% endif %}
+                        <!-- Download Button -->
+<a href="{{ file.public_url }}" download="{{ file.title }}" class="btn btn-success" style="display:inline;">
+    <i class="fa fa-download"></i> Download
+</a>
                         <form action="{% url 'delete_file' file.id %}" method="post" style="display:inline;">
                             {% csrf_token %}
                             <button type="submit" class="btn btn-danger">
@@ -137,10 +141,6 @@
       <div class="modal-content">
         <form method="POST" enctype="multipart/form-data">
           {% csrf_token %}
-          <div class="modal-header">
-            <h5 class="modal-title" id="uploadModalLabel">Upload File</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-          </div>
           <div class="modal-body">
             <div class="mb-3">
               <label for="id_title" class="form-label">File Title</label>
@@ -167,8 +167,3 @@
 
 </body>
 </html>
-<form method="POST" enctype="multipart/form-data">
-    {% csrf_token %}
-    {{ form.as_p }}
-    <button type="submit">Upload File</button>
-</form>
