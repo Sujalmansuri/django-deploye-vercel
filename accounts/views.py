@@ -13,7 +13,7 @@ from datetime import datetime
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import authenticate, login, logout
 from .forms import UploadFileForm
-
+import uuid
 # Load environment variables from .env file
 load_dotenv()
 
@@ -107,19 +107,51 @@ def dashboard(request):
         'error': error,
     })
 
-def handle_uploaded_file(f):
-    # Save file to storage (Supabase Storage)
-    file_name = f.name
-    file_content = f.read()
+# Upload file function
+def handle_uploaded_file(request):
+    if request.method == "POST" and request.FILES.get("file"):
+        form = UploadFileForm(request.POST, request.FILES)
+        if form.is_valid():
+            file = request.FILES["file"]
+            title = form.cleaned_data["title"]
+            user = request.user
 
-    # Upload to Supabase Storage bucket named 'uploads'
-    result = supabase.storage.from_('uploads').upload(file_name, file_content, {"content-type": f.content_type})
+            # Generate unique file path and name
+            folder_name = f"user-{user.id}"
+            file_name = f"{uuid.uuid4()}_{file.name}"
+            file_path = f"{folder_name}/{file_name}"
 
-    if result.get("error"):
-        raise Exception("Upload failed: " + str(result["error"]))
+            try:
+                # Upload file to Supabase
+                supabase.storage.from_('your-bucket-name').upload(file_path, file, {"content-type": file.content_type})
 
-    # Return the path or public URL
-    return f"uploads/{file_name}"
+                # Get the public URL
+                public_url = supabase.storage.from_('your-bucket-name').get_public_url(file_path)
+
+                # Save file metadata in the UploadedFile model
+                UploadedFile.objects.create(
+                    user=user,
+                    title=title,
+                    public_url=public_url,
+                    path_in_bucket=file_path  # Store the actual path in the bucket
+                )
+
+                return render(request, "upload.html", {
+                    "form": UploadFileForm(),
+                    "success": "File uploaded successfully!"
+                })
+
+            except Exception as e:
+                return render(request, "upload.html", {
+                    "form": form,
+                    "error": f"Supabase upload failed: {e}"
+                })
+
+    else:
+        form = UploadFileForm()
+
+    return render(request, "upload.html", {"form": form})
+
 
 def upload(request):
     if request.method == "POST" and request.FILES.get("file"):

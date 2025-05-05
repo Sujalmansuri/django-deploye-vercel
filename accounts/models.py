@@ -18,10 +18,11 @@ class User_Data(models.Model):
 # models.py
 
 class UploadedFile(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
     title = models.CharField(max_length=255)
-    file_url = models.URLField()
+    public_url = models.URLField()
+    path_in_bucket = models.CharField(max_length=500)  # <- NEW FIELD
     uploaded_at = models.DateTimeField(auto_now_add=True)
-    user = models.ForeignKey(User_Data, on_delete=models.CASCADE)
 
 
 class CustomUser(models.Model):
