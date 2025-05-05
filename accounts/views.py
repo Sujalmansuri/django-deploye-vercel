@@ -48,18 +48,18 @@ def dashboard(request):
     
     success = error = None
 
-    # # Handle file upload
-    # if request.method == 'POST' and request.FILES.get('file'):
-    #     form = UploadFileForm(request.POST, request.FILES)
-    #     if form.is_valid():
-    #         uploaded_file = form.save(commit=False)
-    #         uploaded_file.user = user
-    #         uploaded_file.save()
-    #         success = "File uploaded successfully!"
-    #     else:
-    #         error = "Error uploading file."
-    # else:
-    #     form = UploadFileForm()
+    # Handle file upload
+    if request.method == 'POST' and request.FILES.get('file'):
+        form = UploadFileForm(request.POST, request.FILES)
+        if form.is_valid():
+            uploaded_file = form.save(commit=False)
+            uploaded_file.user = user
+            uploaded_file.save()
+            success = "File uploaded successfully!"
+        else:
+            error = "Error uploading file."
+    else:
+        form = UploadFileForm()
 
     # Filter files
     if filter_type == 'all':
