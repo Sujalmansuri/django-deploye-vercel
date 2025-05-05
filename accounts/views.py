@@ -41,7 +41,7 @@ def login_page(request):
 def signup_page(request):
     return render(request, 'signup.html')
 
-@login_required
+#@login_required
 def dashboard(request):
     filter_type = request.GET.get('filter', 'myfiles')
     user = request.user
