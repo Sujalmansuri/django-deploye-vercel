@@ -91,12 +91,39 @@ def dashboard(request):
     if request.method == 'POST':
         form = UploadFileForm(request.POST, request.FILES)
         if form.is_valid():
-            uploaded_file = form.save(commit=False)
-            uploaded_file.user = request.user  # or use your custom user if applicable
-            uploaded_file.save()
-            success = "File uploaded successfully!"
+            # Manual file processing instead of form.save()
+            file = request.FILES["file"]
+            file_title = form.cleaned_data["title"]
+
+            try:
+                user = User_Data.objects.get(email=user_email)
+                file_data = file.read()
+                file_path = f"{user.id}/{datetime.now().timestamp()}_{file.name}"
+
+                # Upload to Supabase
+                supabase.storage.from_("uploads").upload(
+                    path=file_path,
+                    file=file_data,
+                    file_options={"content-type": file.content_type}
+                )
+
+                # Get public URL
+                file_url = supabase.storage.from_("uploads").get_public_url(file_path)
+
+                # Save file metadata to the database
+                UploadedFile.objects.create(
+                    title=file_title,
+                    file_url=file_url,
+                    user=user
+                )
+
+                success = "File uploaded successfully!"
+            except Exception as e:
+                error = f"Supabase upload failed: {e}"
+
         else:
-            error = "Error uploading file."
+            error = "Invalid form data."
+
     else:
         form = UploadFileForm()
 
@@ -113,6 +140,7 @@ def dashboard(request):
         'success': success,
         'error': error,
     })
+
 def handle_uploaded_file(f):
     # Save file to storage (Supabase Storage)
     file_name = f.name
