@@ -90,14 +90,14 @@ def upload(request):
                 file_data = file.read()
                 file_path = f"{user.id}/{datetime.now().timestamp()}_{file.name}"
 
-                supabase.storage.from_("uplods").upload(
+                supabase.storage.from_("uploads").upload(
                     path=file_path,
                     file=file_data,
                     file_options={"content-type": file.content_type}
                 )
 
                 # Get public URL
-                file_url = supabase.storage.from_("uplods").get_public_url(file_path)
+                file_url = supabase.storage.from_("uploads").get_public_url(file_path)
 
                 UploadedFile.objects.create(
                     title=file_title,
