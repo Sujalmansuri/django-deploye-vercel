@@ -45,18 +45,54 @@ def signup_page(request):
 from django.contrib.auth.decorators import login_required
 
 
-def dashboard(request):
-    filter_type = request.GET.get('filter', 'myfiles')
-    user = request.user
+# def dashboard(request):
+#     filter_type = request.GET.get('filter', 'myfiles')
+#     user = request.user
     
-    success = error = None
+#     success = error = None
+
+#     # Handle file upload
+#     if request.method == 'POST' and request.FILES.get('file'):
+#         form = UploadFileForm(request.POST, request.FILES)
+#         if form.is_valid():
+#             uploaded_file = form.save(commit=False)
+#             uploaded_file.user = user
+#             uploaded_file.save()
+#             success = "File uploaded successfully!"
+#         else:
+#             error = "Error uploading file."
+#     else:
+#         form = UploadFileForm()
+
+#     # Filter files
+#     if filter_type == 'all':
+#         files = UploadedFile.objects.all().order_by('-id')
+#     else:
+#         files = UploadedFile.objects.filter(user=user).order_by('-id')
+
+#     return render(request, 'dashboard.html', {
+#         'files': files,
+#         'filter_type': filter_type,
+#         #'form': form,
+#         'success': success,
+#         'error': error,
+#     })
+
+
+def dashboard(request):
+    if 'user_email' not in request.session:
+        return redirect('login')
+
+    user_email = request.session['user_email']
+    filter_type = request.GET.get('filter', 'myfiles')
 
     # Handle file upload
-    if request.method == 'POST' and request.FILES.get('file'):
+    success = error = None
+    if request.method == 'POST':
         form = UploadFileForm(request.POST, request.FILES)
         if form.is_valid():
             uploaded_file = form.save(commit=False)
-            uploaded_file.user = user
+            uploaded_file.user = request.user  # or use your custom user if applicable
             uploaded_file.save()
             success = "File uploaded successfully!"
         else:
@@ -64,61 +100,75 @@ def dashboard(request):
     else:
         form = UploadFileForm()
 
-    # Filter files
+    # File filtering
     if filter_type == 'all':
-        files = UploadedFile.objects.all().order_by('-id')
+        files = UploadedFile.objects.all()
     else:
-        files = UploadedFile.objects.filter(user=user).order_by('-id')
+        files = UploadedFile.objects.filter(user__email=user_email)
 
     return render(request, 'dashboard.html', {
         'files': files,
         'filter_type': filter_type,
-        #'form': form,
+        'form': form,
         'success': success,
         'error': error,
     })
-def upload(request):
-    if request.method == "POST" and request.FILES.get("file"):
-        form = UploadFileForm(request.POST, request.FILES)
-        if form.is_valid():
-            file = request.FILES["file"]
-            file_title = form.cleaned_data["title"]
-            user = request.user
+def handle_uploaded_file(f):
+    # Save file to storage (Supabase Storage)
+    file_name = f.name
+    file_content = f.read()
 
-            # Upload file to Supabase
-            try:
-                file_data = file.read()
-                file_path = f"{user.id}/{datetime.now().timestamp()}_{file.name}"
+    # Upload to Supabase Storage bucket named 'uploads'
+    result = supabase.storage.from_('uploads').upload(file_name, file_content, {"content-type": f.content_type})
 
-                supabase.storage.from_("uploads").upload(
-                    path=file_path,
-                    file=file_data,
-                    file_options={"content-type": file.content_type}
-                )
+    if result.get("error"):
+        raise Exception("Upload failed: " + str(result["error"]))
 
-                # Get public URL
-                file_url = supabase.storage.from_("uploads").get_public_url(file_path)
+    # Return the path or public URL
+    return f"uploads/{file_name}"
 
-                UploadedFile.objects.create(
-                    title=file_title,
-                    file_url=file_url,
-                    user=user
-                )
+# def upload(request):
+#     if request.method == "POST" and request.FILES.get("file"):
+#         form = UploadFileForm(request.POST, request.FILES)
+#         if form.is_valid():
+#             file = request.FILES["file"]
+#             file_title = form.cleaned_data["title"]
+#             user = request.user
 
-                return render(request, "upload.html", {
-                    "form": UploadFileForm(),
-                    "success": "File uploaded successfully!",
-                })
-            except Exception as e:
-                return render(request, "upload.html", {
-                    "form": form,
-                    "error": f"Supabase upload failed: {e}"
-                })
+#             # Upload file to Supabase
+#             try:
+#                 file_data = file.read()
+#                 file_path = f"{user.id}/{datetime.now().timestamp()}_{file.name}"
 
-    else:
-        form = UploadFileForm()
+#                 supabase.storage.from_("uploads").upload(
+#                     path=file_path,
+#                     file=file_data,
+#                     file_options={"content-type": file.content_type}
+#                 )
 
-    return render(request, "upload.html", {"form": form})
+#                 # Get public URL
+#                 file_url = supabase.storage.from_("uploads").get_public_url(file_path)
+
+#                 UploadedFile.objects.create(
+#                     title=file_title,
+#                     file_url=file_url,
+#                     user=user
+#                 )
+
+#                 return render(request, "upload.html", {
+#                     "form": UploadFileForm(),
+#                     "success": "File uploaded successfully!",
+#                 })
+#             except Exception as e:
+#                 return render(request, "upload.html", {
+#                     "form": form,
+#                     "error": f"Supabase upload failed: {e}"
+#                 })
+
+#     else:
+#         form = UploadFileForm()
+
+#     return render(request, "upload.html", {"form": form})
 
 def delete_file(request, file_id):
     if request.method == 'POST':
