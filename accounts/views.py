@@ -12,13 +12,10 @@ from dotenv import load_dotenv
 from datetime import datetime
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import authenticate, login, logout
-from models import UploadedFile
 
+# Load environment variables from .env file
+load_dotenv()
 
-import os
-from dotenv import load_dotenv 
-
-load_dotenv()  # Load .env variables
 # Supabase Client Setup
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_API_KEY = os.getenv("SUPABASE_API_KEY")
