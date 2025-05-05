@@ -77,8 +77,8 @@ from django.contrib.auth.decorators import login_required
 #         'success': success,
 #         'error': error,
 #     })
-
-
+    
+    
 def dashboard(request):
     if 'user_email' not in request.session:
         return redirect('login')
@@ -127,48 +127,48 @@ def handle_uploaded_file(f):
     # Return the path or public URL
     return f"uploads/{file_name}"
 
-# def upload(request):
-#     if request.method == "POST" and request.FILES.get("file"):
-#         form = UploadFileForm(request.POST, request.FILES)
-#         if form.is_valid():
-#             file = request.FILES["file"]
-#             file_title = form.cleaned_data["title"]
-#             user = request.user
+def upload(request):
+    if request.method == "POST" and request.FILES.get("file"):
+        form = UploadFileForm(request.POST, request.FILES)
+        if form.is_valid():
+            file = request.FILES["file"]
+            file_title = form.cleaned_data["title"]
+            user = request.user
 
-#             # Upload file to Supabase
-#             try:
-#                 file_data = file.read()
-#                 file_path = f"{user.id}/{datetime.now().timestamp()}_{file.name}"
+            # Upload file to Supabase
+            try:
+                file_data = file.read()
+                file_path = f"{user.id}/{datetime.now().timestamp()}_{file.name}"
 
-#                 supabase.storage.from_("uploads").upload(
-#                     path=file_path,
-#                     file=file_data,
-#                     file_options={"content-type": file.content_type}
-#                 )
+                supabase.storage.from_("uploads").upload(
+                    path=file_path,
+                    file=file_data,
+                    file_options={"content-type": file.content_type}
+                )
 
-#                 # Get public URL
-#                 file_url = supabase.storage.from_("uploads").get_public_url(file_path)
+                # Get public URL
+                file_url = supabase.storage.from_("uploads").get_public_url(file_path)
 
-#                 UploadedFile.objects.create(
-#                     title=file_title,
-#                     file_url=file_url,
-#                     user=user
-#                 )
+                UploadedFile.objects.create(
+                    title=file_title,
+                    file_url=file_url,
+                    user=user
+                )
 
-#                 return render(request, "upload.html", {
-#                     "form": UploadFileForm(),
-#                     "success": "File uploaded successfully!",
-#                 })
-#             except Exception as e:
-#                 return render(request, "upload.html", {
-#                     "form": form,
-#                     "error": f"Supabase upload failed: {e}"
-#                 })
+                return render(request, "upload.html", {
+                    "form": UploadFileForm(),
+                    "success": "File uploaded successfully!",
+                })
+            except Exception as e:
+                return render(request, "upload.html", {
+                    "form": form,
+                    "error": f"Supabase upload failed: {e}"
+                })
 
-#     else:
-#         form = UploadFileForm()
+    else:
+        form = UploadFileForm()
 
-#     return render(request, "upload.html", {"form": form})
+    return render(request, "upload.html", {"form": form})
 
 def delete_file(request, file_id):
     if request.method == 'POST':
