@@ -12,6 +12,8 @@ from dotenv import load_dotenv
 from datetime import datetime
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import authenticate, login, logout
+from models import UploadedFile
+from .forms import UploadFileForm
 
 # Load environment variables from .env file
 load_dotenv()
