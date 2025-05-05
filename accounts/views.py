@@ -1,7 +1,6 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import HttpResponse, JsonResponse, Http404
 from .models import User_Data, UploadedFile
-from .forms import UploadFileForm
 from django.contrib.auth.hashers import make_password, check_password
 from django.conf import settings
 from google_auth_oauthlib.flow import Flow
@@ -45,32 +44,33 @@ def signup_page(request):
 @login_required
 def dashboard(request):
     filter_type = request.GET.get('filter', 'myfiles')
-    user_email = request.session.get('user_email')
+    user = request.user
     
-    # Handle file upload
     success = error = None
-    if request.method == 'POST':
-        form = UploadFileForm(request.POST, request.FILES)
-        if form.is_valid():
-            uploaded_file = form.save(commit=False)
-            uploaded_file.user = request.user
-            uploaded_file.save()
-            success = "File uploaded successfully!"
-        else:
-            error = "Error uploading file."
-    else:
-        form = UploadFileForm()
 
-    # File filtering
+    # # Handle file upload
+    # if request.method == 'POST' and request.FILES.get('file'):
+    #     form = UploadFileForm(request.POST, request.FILES)
+    #     if form.is_valid():
+    #         uploaded_file = form.save(commit=False)
+    #         uploaded_file.user = user
+    #         uploaded_file.save()
+    #         success = "File uploaded successfully!"
+    #     else:
+    #         error = "Error uploading file."
+    # else:
+    #     form = UploadFileForm()
+
+    # Filter files
     if filter_type == 'all':
-        files = UploadedFile.objects.all()
+        files = UploadedFile.objects.all().order_by('-id')
     else:
-        files = UploadedFile.objects.filter(user__email=user_email)
+        files = UploadedFile.objects.filter(user=user).order_by('-id')
 
     return render(request, 'dashboard.html', {
         'files': files,
         'filter_type': filter_type,
-        'form': form,
+        #'form': form,
         'success': success,
         'error': error,
     })
@@ -218,3 +218,45 @@ def login_view(request):
 
 
     return redirect('login_page')
+
+
+# Login Submit
+def login_submit(request):
+    if request.method == 'POST':
+        email = request.POST.get('email')
+        password = request.POST.get('password')
+
+        try:
+            user = User_Data.objects.get(email=email)
+
+            if check_password(password, user.password):
+                request.session['user_email'] = user.email
+                request.session['user_name'] = user.full_name
+                return redirect('dashboard')
+            else:
+                return render(request, 'login.html', {'error': 'Invalid credentials'})
+
+        except User_Data.DoesNotExist:
+            return render(request, 'login.html', {'error': 'User does not exist'})
+
+    return redirect('login_page')
+
+
+# Logout View
+def logout_view(request):
+    request.session.flush()
+    return redirect('/')  # Ensure 'home' is named properly in urls.py
+
+
+def redirect_if_logged_in(request):
+    if request.session.get('user_email'):
+        return redirect('dashboard')
+
+def download_file(request, file_id):
+    try:
+        uploaded_file = UploadedFile.objects.get(pk=file_id)
+        file_url = uploaded_file.file_url
+        return redirect(file_url)
+    except UploadedFile.DoesNotExist:
+        raise Http404("File not found")
+

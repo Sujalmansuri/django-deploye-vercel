@@ -1,5 +1,4 @@
 {% load static %}
-{% include "navbar.html" %}
 
 <!DOCTYPE html>
 <html lang="en">
@@ -67,9 +66,19 @@
 </head>
 <body>
 
+{% include "navbar.html" %}
+
 <div class="container dashboard-container">
     <h2 class="mb-4">📁 Uploaded Files</h2>
-    <p class="text-muted">Welcome <strong>{{ request.session.user_name }}</strong> 👋</p>
+    <p class="text-muted">Welcome <strong>{{ request.user.first_name|default:request.user.username }}</strong> 👋</p>
+
+    <!-- Alerts -->
+    {% if success %}
+        <div class="alert alert-success">{{ success }}</div>
+    {% endif %}
+    {% if error %}
+        <div class="alert alert-danger">{{ error }}</div>
+    {% endif %}
 
     <!-- Filter Buttons -->
     <div class="filter-btns mb-3">
@@ -84,68 +93,68 @@
         </button>
     </div>
 
-   <!-- File List -->
-{% if files %}
-{% for file in files %}
-    <div class="file-card">
-        <div class="d-flex justify-content-between align-items-center">
-            <div>
-                <div class="file-title">{{ file.title }}</div>
-                <small class="text-muted">Uploaded at: {{ file.uploaded_at|date:"M d, Y H:i" }}</small>
+    <!-- File List -->
+    {% if files %}
+        {% for file in files %}
+            <div class="file-card">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="file-title">{{ file.title }}</div>
+                        <small class="text-muted">Uploaded at: {{ file.uploaded_at|date:"M d, Y H:i" }}</small>
+                    </div>
+                    <div class="file-actions">
+                        {% if file.file %}
+                            <a href="{{ file.file.url }}" class="btn btn-primary" download>
+                                <i class="fa fa-download"></i> Download
+                            </a>
+                        {% else %}
+                            <span class="text-muted">No file available</span>
+                        {% endif %}
+                        <form action="{% url 'delete_file' file.id %}" method="post" style="display:inline;">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-danger">
+                                <i class="fa fa-trash"></i> Delete
+                            </button>
+                        </form>
+                    </div>
+                </div>
             </div>
-            <div class="file-actions">
-                {% if file.file %}
-                    <!-- ✅✅ ADDED THIS CHECK TO AVOID ERROR -->
-                    <a href="{{ file.file.url }}" class="btn btn-primary" download>
-                        <i class="fa fa-download"></i> Download
-                    </a>
-                {% else %}
-                    <!-- ✅✅ OPTIONAL: Show placeholder if no file -->
-                    <span class="text-muted">No file available</span>
-                {% endif %}
-                <form action="{% url 'delete_file' file.id %}" method="post" style="display:inline;">
+        {% endfor %}
+    {% else %}
+        <div class="alert alert-warning" role="alert">
+            No files available for this view.
+        </div>
+    {% endif %}
+
+    <!-- Upload File Modal -->
+    <div class="modal fade" id="uploadModal" tabindex="-1" aria-labelledby="uploadModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form action="{% url 'dashboard' %}" method="POST" enctype="multipart/form-data">
                     {% csrf_token %}
-                    <button type="submit" class="btn btn-danger">
-                        <i class="fa fa-trash"></i> Delete
-                    </button>
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="uploadModalLabel">Upload File</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="fileTitle" class="form-label">File Title</label>
+                            <input type="text" class="form-control" id="fileTitle" name="title" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="file" class="form-label">Choose File</label>
+                            <input type="file" class="form-control" id="file" name="file" required>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <button type="submit" class="btn btn-primary">Upload File</button>
+                    </div>
                 </form>
             </div>
         </div>
     </div>
-{% endfor %}
-{% else %}
-<div class="alert alert-warning" role="alert">
-    No files available for this view.
-</div>
-{% endif %}
 
-<!-- Upload File Modal -->
-<div class="modal fade" id="uploadModal" tabindex="-1" aria-labelledby="uploadModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <form action="{% url 'upload' %}" method="POST" enctype="multipart/form-data">
-                {% csrf_token %}
-                <div class="modal-header">
-                    <h5 class="modal-title" id="uploadModalLabel">Upload File</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label for="fileTitle" class="form-label">File Title</label>
-                        <input type="text" class="form-control" id="fileTitle" name="title" required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="file" class="form-label">Choose File</label>
-                        <input type="file" class="form-control" id="file" name="file" required>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                    <button type="submit" class="btn btn-primary">Upload File</button>
-                </div>
-            </form>
-        </div>
-    </div>
 </div>
 
 <!-- Bootstrap JS -->

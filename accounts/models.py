@@ -18,7 +18,8 @@ class User_Data(models.Model):
 
 class UploadedFile(models.Model):
     title = models.CharField(max_length=255)  # File title
-    file = models.FileField(upload_to='uploads/', null=True, blank=True)  # Local storage
+  # Replace file = models.FileField(...) with this:
+    file_url = models.URLField(null=True, blank=True)
     uploaded_at = models.DateTimeField(auto_now_add=True)  # Timestamp of upload
     user = models.ForeignKey(User, on_delete=models.CASCADE)  # Associated user
 
