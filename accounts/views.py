@@ -123,10 +123,10 @@ def handle_uploaded_file(request):
 
             try:
                 # Upload file to Supabase
-                supabase.storage.from_('your-bucket-name').upload(file_path, file, {"content-type": file.content_type})
+                supabase.storage.from_('uploads').upload(file_path, file, {"content-type": file.content_type})
 
                 # Get the public URL
-                public_url = supabase.storage.from_('your-bucket-name').get_public_url(file_path)
+                public_url = supabase.storage.from_('uploads').get_public_url(file_path)
 
                 # Save file metadata in the UploadedFile model
                 UploadedFile.objects.create(
