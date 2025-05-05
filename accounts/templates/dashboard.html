@@ -126,20 +126,40 @@
         </div>
     {% endif %}
 
-    <!-- Upload File Modal -->
-    <div class="modal fade" id="uploadModal" tabindex="-1" aria-labelledby="uploadModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <form method="POST" enctype="multipart/form-data">
-                    {% csrf_token %}
-                    {{ form.as_p }}
-                    <button type="submit">Upload File</button>
-                </form>
-                
+    <!-- Button to trigger modal -->
+<button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#uploadModal">
+    Upload File
+  </button>
+  
+  <!-- Modal -->
+  <div class="modal fade" id="uploadModal" tabindex="-1" aria-labelledby="uploadModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <form method="POST" enctype="multipart/form-data">
+          {% csrf_token %}
+          <div class="modal-header">
+            <h5 class="modal-title" id="uploadModalLabel">Upload File</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <div class="mb-3">
+              <label for="id_title" class="form-label">File Title</label>
+              <input type="text" class="form-control" id="id_title" name="title" required>
             </div>
-        </div>
+            <div class="mb-3">
+              <label for="id_file" class="form-label">Choose File</label>
+              <input type="file" class="form-control" id="id_file" name="file" required>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            <button type="submit" class="btn btn-primary">Upload File</button>
+          </div>
+        </form>
+      </div>
     </div>
-
+  </div>
+  
 </div>
 
 <!-- Bootstrap JS -->
@@ -147,3 +167,8 @@
 
 </body>
 </html>
+<form method="POST" enctype="multipart/form-data">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">Upload File</button>
+</form>
