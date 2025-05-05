@@ -41,7 +41,9 @@ def login_page(request):
 def signup_page(request):
     return render(request, 'signup.html')
 
-#@login_required
+from django.contrib.auth.decorators import login_required
+
+@login_required(login_url='/login/')
 def dashboard(request):
     filter_type = request.GET.get('filter', 'myfiles')
     user = request.user
