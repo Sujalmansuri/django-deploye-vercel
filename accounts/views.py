@@ -124,7 +124,7 @@ def google_login(request):
             'https://www.googleapis.com/auth/userinfo.email',
             'openid'
         ],
-        redirect_uri="https://instadatacom.vercel.app/google/login/",  # Change this as per your setup
+        redirect_uri="https://instadatacom.vercel.app/complete/google/",  # Change this as per your setup
     )
 
     authorization_url, state = flow.authorization_url()
