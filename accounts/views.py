@@ -45,40 +45,6 @@ def signup_page(request):
 from django.contrib.auth.decorators import login_required
 
 
-# def dashboard(request):
-#     filter_type = request.GET.get('filter', 'myfiles')
-#     user = request.user
-    
-#     success = error = None
-
-#     # Handle file upload
-#     if request.method == 'POST' and request.FILES.get('file'):
-#         form = UploadFileForm(request.POST, request.FILES)
-#         if form.is_valid():
-#             uploaded_file = form.save(commit=False)
-#             uploaded_file.user = user
-#             uploaded_file.save()
-#             success = "File uploaded successfully!"
-#         else:
-#             error = "Error uploading file."
-#     else:
-#         form = UploadFileForm()
-
-#     # Filter files
-#     if filter_type == 'all':
-#         files = UploadedFile.objects.all().order_by('-id')
-#     else:
-#         files = UploadedFile.objects.filter(user=user).order_by('-id')
-
-#     return render(request, 'dashboard.html', {
-#         'files': files,
-#         'filter_type': filter_type,
-#         #'form': form,
-#         'success': success,
-#         'error': error,
-#     })
-    
-    
 def dashboard(request):
     if 'user_email' not in request.session:
         return redirect('login')
@@ -346,11 +312,24 @@ def redirect_if_logged_in(request):
     if request.session.get('user_email'):
         return redirect('dashboard')
 
+from supabase import create_client
+import time
+
+
 def download_file(request, file_id):
-    try:
-        uploaded_file = UploadedFile.objects.get(pk=file_id)
-        file_url = uploaded_file.file_url
-        return redirect(file_url)
-    except UploadedFile.DoesNotExist:
-        raise Http404("File not found")
+    uploaded_file = get_object_or_404(UploadedFile, id=file_id)
+
+    # Get path of the file in the bucket (e.g., "myfiles/report.pdf")
+    file_path = uploaded_file.path_in_bucket  # ensure you store this when uploading
+
+    # Generate signed URL (valid for 60 seconds)
+    response = supabase.storage.from_('uploads').create_signed_url(file_path, 60)
+    signed_url = response.get("signedURL")
+
+    if signed_url:
+        return redirect(signed_url)
+    else:
+        return HttpResponse("Failed to generate download link", status=400)
+
+
 

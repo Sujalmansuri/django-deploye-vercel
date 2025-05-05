@@ -111,9 +111,10 @@
                             <span class="text-muted">No file available</span>
                         {% endif %}
                         <!-- Download Button -->
-<a href="{{ file.public_url }}" download="{{ file.title }}" class="btn btn-success" style="display:inline;">
-    <i class="fa fa-download"></i> Download
-</a>
+                        <a href="{% url 'download_file' file.id %}" class="btn btn-success">
+                            <i class="fa fa-download"></i> Download
+                        </a>
+                        
                         <form action="{% url 'delete_file' file.id %}" method="post" style="display:inline;">
                             {% csrf_token %}
                             <button type="submit" class="btn btn-danger">
