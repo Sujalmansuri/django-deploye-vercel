@@ -197,4 +197,4 @@ SOCIAL_AUTH_GOOGLE_OAUTH2_SCOPE = [
     'email', 'profile',
 ]
 
-
+LOGIN_URL = '/login/'

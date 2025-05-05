@@ -77,31 +77,44 @@ def dashboard(request):
         'success': success,
         'error': error,
     })
-
 def upload(request):
     if request.method == "POST" and request.FILES.get("file"):
         form = UploadFileForm(request.POST, request.FILES)
         if form.is_valid():
+            file = request.FILES["file"]
             file_title = form.cleaned_data["title"]
-            file = form.cleaned_data["file"]
             user = request.user
 
+            # Upload file to Supabase
             try:
-                uploaded_file = UploadedFile.objects.create(
-                    title=file_title,
-                    file=file,
-                    user=user  # This will now be a real User instance
+                file_data = file.read()
+                file_path = f"{user.id}/{datetime.now().timestamp()}_{file.name}"
+
+                supabase.storage.from_("uplods").upload(
+                    path=file_path,
+                    file=file_data,
+                    file_options={"content-type": file.content_type}
                 )
+
+                # Get public URL
+                file_url = supabase.storage.from_("uplods").get_public_url(file_path)
+
+                UploadedFile.objects.create(
+                    title=file_title,
+                    file_url=file_url,
+                    user=user
+                )
+
                 return render(request, "upload.html", {
-                    "form": form,
+                    "form": UploadFileForm(),
                     "success": "File uploaded successfully!",
-                    "file": uploaded_file
                 })
             except Exception as e:
                 return render(request, "upload.html", {
                     "form": form,
-                    "error": f"An error occurred during file upload: {e}"
+                    "error": f"Supabase upload failed: {e}"
                 })
+
     else:
         form = UploadFileForm()
 
