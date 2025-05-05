@@ -1,18 +1,20 @@
-from django.shortcuts import render, redirect, get_object_or_404
-from django.http import HttpResponse, JsonResponse, Http404
-from .models import User_Data, UploadedFile
-from django.contrib.auth.hashers import make_password, check_password
+import os
+from datetime import datetime
+
 from django.conf import settings
-from google_auth_oauthlib.flow import Flow
+from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.hashers import make_password, check_password
+from django.http import HttpResponse, Http404
+from django.shortcuts import render, redirect, get_object_or_404
+
+from dotenv import load_dotenv
 from google.oauth2 import id_token
+from google_auth_oauthlib.flow import Flow
 from google.auth.transport import requests as google_requests
 from supabase import create_client
-import os
-from dotenv import load_dotenv
-from datetime import datetime
-from django.contrib.auth.decorators import login_required
-from django.contrib.auth import authenticate, login, logout
-from models import UploadedFile
+
+from .models import User_Data, UploadedFile
 from .forms import UploadFileForm
 
 # Load environment variables from .env file
