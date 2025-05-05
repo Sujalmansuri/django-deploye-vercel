@@ -122,7 +122,7 @@ def google_login(request):
             'https://www.googleapis.com/auth/userinfo.email',
             'openid'
         ],
-        redirect_uri="https://yourdomain.com/complete/google/",  # Change this as per your setup
+        redirect_uri="https://instadatacom.vercel.app/complete/google/",  # Change this as per your setup
     )
 
     authorization_url, state = flow.authorization_url()
@@ -138,7 +138,7 @@ def google_callback(request):
             'https://www.googleapis.com/auth/userinfo.profile',
             'openid'
         ],
-        redirect_uri="https://yourdomain.com/complete/google/"  # Change this as per your setup
+        redirect_uri="https://instadatacom.vercel.app/complete/google/"  # Change this as per your setup
     )
 
     flow.fetch_token(authorization_response=request.build_absolute_uri())
