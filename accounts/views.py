@@ -18,17 +18,27 @@ import uuid
 load_dotenv()
 
 # Supabase Client Setup
+
+# Supabase setup
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_API_KEY = os.getenv("SUPABASE_API_KEY")
+SUPABASE_PROJECT_ID = SUPABASE_URL.split("//")[1].split(".")[0]
+BUCKET_NAME = "uploads"
+
 supabase = create_client(SUPABASE_URL, SUPABASE_API_KEY)
-SUPABASE_PROJECT_ID=os.getenv("SUPABASE_PROJECT_ID")
+
 # Ensure OAuth works in dev environment
 os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
 
-# Redirect if already logged in
+from django.shortcuts import redirect
+
 def redirect_if_logged_in(request):
     if request.session.get('user_email'):
         return redirect('dashboard')
+    else:
+        # Return some response if not logged in, e.g., redirect to login
+        return redirect('login')  # Change 'login' to your actual login view name
+
 
 # Home Page
 def home(request):
@@ -43,7 +53,6 @@ def signup_page(request):
     return render(request, 'signup.html')
 
 from django.contrib.auth.decorators import login_required
-
 def dashboard(request):
     if request.method == "POST":
         form = UploadFileForm(request.POST, request.FILES)
@@ -51,51 +60,49 @@ def dashboard(request):
             title = form.cleaned_data['title']
             file = request.FILES['file']
 
-            # Generate user folder and unique file name
             folder_name = f"user-{request.user.id}"
             file_name = f"{uuid.uuid4()}_{file.name}"
             file_path = f"{folder_name}/{file_name}"
 
             # Upload to Supabase bucket
-            res = supabase.storage.from_(uploads).upload(file_path, file, {
+            res = supabase.storage.from_(BUCKET_NAME).upload(file_path, file, {
                 "content-type": file.content_type
             })
 
             if res.get("error"):
                 print("Upload error:", res["error"])
             else:
-                # Manually construct public URL
-                public_url = f"https://{SUPABASE_PROJECT_ID}.supabase.co/storage/v1/object/public/{uploads}/{file_path}"
+                # Dynamically generate the direct download URL
+                public_url = f"https://{SUPABASE_PROJECT_ID}.supabase.co/storage/v1/object/public/{BUCKET_NAME}/{file_path}"
 
-                # Save record
+                # Save file record
                 UploadedFile.objects.create(
                     user=request.user,
                     title=title,
                     public_url=public_url,
-                    path_in_bucket=file_path  # Save for future use (e.g., deletion)
+                    path_in_bucket=file_path
                 )
 
                 return redirect('dashboard')
     else:
         form = UploadFileForm()
 
-    # Fetch user's uploaded files
     uploaded_files = UploadedFile.objects.filter(user=request.user)
     return render(request, "dashboard.html", {
         "form": form,
         "files": uploaded_files
     })
 
-
 def delete_file(request, file_id):
     uploaded_file = get_object_or_404(UploadedFile, id=file_id, user=request.user)
-
+    
     # Delete from Supabase
-    supabase.storage.from_(uploads).remove([uploaded_file.path_in_bucket])
+    supabase.storage.from_(BUCKET_NAME).remove([uploaded_file.path_in_bucket])
 
     # Delete from DB
     uploaded_file.delete()
     return redirect('dashboard')
+
 def handle_uploaded_file(f):
     # Save file to storage (Supabase Storage)
     file_name = f.name
@@ -297,9 +304,6 @@ def logout_view(request):
     return redirect('/')  # Ensure 'home' is named properly in urls.py
 
 
-def redirect_if_logged_in(request):
-    if request.session.get('user_email'):
-        return redirect('dashboard')
 
 from supabase import create_client
 import time

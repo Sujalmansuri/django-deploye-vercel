@@ -112,9 +112,10 @@
                         {% endif %}
                         <!-- Download Button -->
                       <!-- Download Button -->
-        <a href="{{ file.public_url }}" download class="btn btn-success" target="_blank">
-            <i class="fa fa-download"></i> Download
-        </a>
+                      <a href="{{ file.public_url }}" download="{{ file.title }}" class="btn btn-success" style="display:inline;">
+                        <i class="fa fa-download"></i> Download
+                    </a>
+                    
                         
                         <form action="{% url 'delete_file' file.id %}" method="post" style="display:inline;">
                             {% csrf_token %}
