@@ -53,6 +53,10 @@ def signup_page(request):
     return render(request, 'signup.html')
 
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required
+from django.shortcuts import redirect
+
+@login_required(login_url='login')  # Replace 'login' with your login URL name
 def dashboard(request):
     if request.method == "POST":
         form = UploadFileForm(request.POST, request.FILES)
@@ -65,17 +69,17 @@ def dashboard(request):
             file_path = f"{folder_name}/{file_name}"
 
             # Upload to Supabase bucket
-            res = supabase.storage.from_(BUCKET_NAME).upload(file_path, file, {
+            res = supabase.storage.from_('uploads').upload(file_path, file, {
                 "content-type": file.content_type
             })
 
             if res.get("error"):
                 print("Upload error:", res["error"])
             else:
-                # Dynamically generate the direct download URL
-                public_url = f"https://{SUPABASE_PROJECT_ID}.supabase.co/storage/v1/object/public/{BUCKET_NAME}/{file_path}"
+                # Construct public URL
+                public_url = f"https://{SUPABASE_PROJECT_ID}.supabase.co/storage/v1/object/public/uploads/{file_path}"
 
-                # Save file record
+                # Save record
                 UploadedFile.objects.create(
                     user=request.user,
                     title=title,
