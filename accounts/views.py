@@ -56,37 +56,34 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import redirect
 
-
+@login_required
 def dashboard(request):
     if request.method == "POST":
         form = UploadFileForm(request.POST, request.FILES)
         if form.is_valid():
-            title = form.cleaned_data['title']
-            file = request.FILES['file']
+            title = form.cleaned_data["title"]
+            file = request.FILES["file"]
 
             folder_name = f"user-{request.user.id}"
             file_name = f"{uuid.uuid4()}_{file.name}"
             file_path = f"{folder_name}/{file_name}"
 
-            # Upload to Supabase bucket
-            res = supabase.storage.from_('uploads').upload(file_path, file, {
+            res = supabase.storage.from_(BUCKET_NAME).upload(file_path, file, {
                 "content-type": file.content_type
             })
 
             if res.get("error"):
                 print("Upload error:", res["error"])
             else:
-                # Construct public URL
-                public_url = f"https://{SUPABASE_PROJECT_ID}.supabase.co/storage/v1/object/public/uploads/{file_path}"
+                # Construct public URL manually
+                public_url = f"https://{SUPABASE_PROJECT_ID}.supabase.co/storage/v1/object/public/{BUCKET_NAME}/{file_path}"
 
-                # Save record
                 UploadedFile.objects.create(
                     user=request.user,
                     title=title,
                     public_url=public_url,
                     path_in_bucket=file_path
                 )
-
                 return redirect('dashboard')
     else:
         form = UploadFileForm()
@@ -97,15 +94,12 @@ def dashboard(request):
         "files": uploaded_files
     })
 
+@login_required
 def delete_file(request, file_id):
     uploaded_file = get_object_or_404(UploadedFile, id=file_id, user=request.user)
-    
-    # Delete from Supabase
     supabase.storage.from_(BUCKET_NAME).remove([uploaded_file.path_in_bucket])
-
-    # Delete from DB
     uploaded_file.delete()
-    return redirect('dashboard')
+    return redirect("dashboard")
 
 def handle_uploaded_file(f):
     # Save file to storage (Supabase Storage)
