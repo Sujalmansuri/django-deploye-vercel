@@ -91,7 +91,7 @@ def delete_file(request, file_id):
     uploaded_file = get_object_or_404(UploadedFile, id=file_id, user=request.user)
 
     # Delete from Supabase
-    supabase.storage.from_(BUCKET_NAME).remove([uploaded_file.path_in_bucket])
+    supabase.storage.from_(uploads).remove([uploaded_file.path_in_bucket])
 
     # Delete from DB
     uploaded_file.delete()
