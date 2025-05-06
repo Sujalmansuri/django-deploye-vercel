@@ -44,114 +44,71 @@ def signup_page(request):
 
 from django.contrib.auth.decorators import login_required
 
-
 def dashboard(request):
-    if 'user_email' not in request.session:
-        return redirect('login')
-
-    user_email = request.session['user_email']
-    filter_type = request.GET.get('filter', 'myfiles')
-
-    # Handle file upload
-    success = error = None
-    if request.method == 'POST':
+    if request.method == "POST":
         form = UploadFileForm(request.POST, request.FILES)
         if form.is_valid():
-            # Manual file processing instead of form.save()
-            file = request.FILES["file"]
-            file_title = form.cleaned_data["title"]
+            title = form.cleaned_data['title']
+            file = request.FILES['file']
 
-            try:
-                user = User_Data.objects.get(email=user_email)
-                file_data = file.read()
-                file_path = f"{user.id}/{datetime.now().timestamp()}_{file.name}"
-
-                # Upload to Supabase
-                supabase.storage.from_("uploads").upload(
-                    path=file_path,
-                    file=file_data,
-                    file_options={"content-type": file.content_type}
-                )
-
-                # Get public URL
-                file_url = supabase.storage.from_("uploads").get_public_url(file_path)
-
-                # Save file metadata to the database
-                UploadedFile.objects.create(
-                    title=file_title,
-                    file_url=file_url,
-                    user=user
-                )
-
-                success = "File uploaded successfully!"
-            except Exception as e:
-                error = f"Supabase upload failed: {e}"
-
-        else:
-            error = "Invalid form data."
-
-    else:
-        form = UploadFileForm()
-
-    # File filtering
-    if filter_type == 'all':
-        files = UploadedFile.objects.all()
-    else:
-        files = UploadedFile.objects.filter(user__email=user_email)
-
-    return render(request, 'dashboard.html', {
-        'files': files,
-        'filter_type': filter_type,
-        'form': form,
-        'success': success,
-        'error': error,
-    })
-
-# Upload file function
-def handle_uploaded_file(request):
-    if request.method == "POST" and request.FILES.get("file"):
-        form = UploadFileForm(request.POST, request.FILES)
-        if form.is_valid():
-            file = request.FILES["file"]
-            title = form.cleaned_data["title"]
-            user = request.user
-
-            # Generate unique file path and name
-            folder_name = f"user-{user.id}"
+            # Generate user folder and unique file name
+            folder_name = f"user-{request.user.id}"
             file_name = f"{uuid.uuid4()}_{file.name}"
             file_path = f"{folder_name}/{file_name}"
 
-            try:
-                # Upload file to Supabase
-                supabase.storage.from_('uploads').upload(file_path, file, {"content-type": file.content_type})
+            # Upload to Supabase bucket
+            res = supabase.storage.from_(BUCKET_NAME).upload(file_path, file, {
+                "content-type": file.content_type
+            })
 
-                # Get the public URL
-                public_url = supabase.storage.from_('uploads').get_public_url(file_path)
+            if res.get("error"):
+                print("Upload error:", res["error"])
+            else:
+                # Manually construct public URL
+                public_url = f"https://{SUPABASE_PROJECT_ID}.supabase.co/storage/v1/object/public/{BUCKET_NAME}/{file_path}"
 
-                # Save file metadata in the UploadedFile model
+                # Save record
                 UploadedFile.objects.create(
-                    user=user,
+                    user=request.user,
                     title=title,
                     public_url=public_url,
-                    path_in_bucket=file_path  # Store the actual path in the bucket
+                    path_in_bucket=file_path  # Save for future use (e.g., deletion)
                 )
 
-                return render(request, "upload.html", {
-                    "form": UploadFileForm(),
-                    "success": "File uploaded successfully!"
-                })
-
-            except Exception as e:
-                return render(request, "upload.html", {
-                    "form": form,
-                    "error": f"Supabase upload failed: {e}"
-                })
-
+                return redirect('dashboard')
     else:
         form = UploadFileForm()
 
-    return render(request, "upload.html", {"form": form})
+    # Fetch user's uploaded files
+    uploaded_files = UploadedFile.objects.filter(user=request.user)
+    return render(request, "dashboard.html", {
+        "form": form,
+        "files": uploaded_files
+    })
 
+
+def delete_file(request, file_id):
+    uploaded_file = get_object_or_404(UploadedFile, id=file_id, user=request.user)
+
+    # Delete from Supabase
+    supabase.storage.from_(BUCKET_NAME).remove([uploaded_file.path_in_bucket])
+
+    # Delete from DB
+    uploaded_file.delete()
+    return redirect('dashboard')
+def handle_uploaded_file(f):
+    # Save file to storage (Supabase Storage)
+    file_name = f.name
+    file_content = f.read()
+
+    # Upload to Supabase Storage bucket named 'uploads'
+    result = supabase.storage.from_('uploads').upload(file_name, file_content, {"content-type": f.content_type})
+
+    if result.get("error"):
+        raise Exception("Upload failed: " + str(result["error"]))
+
+    # Return the path or public URL
+    return f"uploads/{file_name}"
 
 def upload(request):
     if request.method == "POST" and request.FILES.get("file"):
@@ -196,14 +153,14 @@ def upload(request):
 
     return render(request, "upload.html", {"form": form})
 
-def delete_file(request, file_id):
-    if request.method == 'POST':
-        try:
-            file = get_object_or_404(UploadedFile, id=file_id)
-            file.delete()  # Ensure to remove from storage as well if needed
-            return redirect('dashboard')
-        except UploadedFile.DoesNotExist:
-            return redirect('dashboard')  # If file doesn't exist, just redirect to dashboard
+# def delete_file(request, file_id):
+#     if request.method == 'POST':
+#         try:
+#             file = get_object_or_404(UploadedFile, id=file_id)
+#             file.delete()  # Ensure to remove from storage as well if needed
+#             return redirect('dashboard')
+#         except UploadedFile.DoesNotExist:
+#             return redirect('dashboard')  # If file doesn't exist, just redirect to dashboard
 
 # Google Login
 def google_login(request):
