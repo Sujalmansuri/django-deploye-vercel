@@ -14,7 +14,6 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth import authenticate, login, logout
 from .forms import UploadFileForm
 import uuid
-from accounts import views
 # Load environment variables from .env file
 load_dotenv()
 SUPABASE_URL = os.getenv("SUPABASE_URL")
@@ -127,7 +126,8 @@ def download_file(request, file_id):
         return redirect(signed_url)
     else:
         return HttpResponse("Failed to generate download link", status=400)
-        
+
+
 # Google Login
 def google_login(request):
     flow = Flow.from_client_config(
@@ -261,5 +261,13 @@ def login_submit(request):
 def logout_view(request):
     request.session.flush()
     return redirect('/')  # Ensure 'home' is named properly in urls.py
+
+
+
+from supabase import create_client
+import time
+
+
+
 
 
