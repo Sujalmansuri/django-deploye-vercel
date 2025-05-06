@@ -14,6 +14,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth import authenticate, login, logout
 from .forms import UploadFileForm
 import uuid
+from accounts import views
 # Load environment variables from .env file
 load_dotenv()
 SUPABASE_URL = os.getenv("SUPABASE_URL")
@@ -45,64 +46,50 @@ def signup_page(request):
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import redirect
 
-# Dashboard View (with upload handling)
 def dashboard(request):
-    if not is_logged_in(request):
+    if 'user_email' not in request.session:
         return redirect('login')
 
     if request.method == "POST":
         form = UploadFileForm(request.POST, request.FILES)
         if form.is_valid():
-            uploaded_file = request.FILES["file"]
             title = form.cleaned_data["title"]
-
-            # Validate file type
-            allowed_types = ['application/pdf', 'image/jpeg', 'image/png']
-            if uploaded_file.content_type not in allowed_types:
-                return render(request, "dashboard.html", {
-                    "form": form,
-                    "files": UploadedFile.objects.filter(user_email=request.session['user_email']),
-                    "error": "Invalid file type."
-                })
+            uploaded_file = request.FILES["file"]
 
             folder_name = f"user-{request.session['user_email'].split('@')[0]}"
             file_name = f"{uuid.uuid4()}_{uploaded_file.name}"
             file_path = f"{folder_name}/{file_name}"
 
-            try:
-                res = supabase.storage.from_(BUCKET_NAME).upload(file_path, uploaded_file, {
-                    "content-type": uploaded_file.content_type
-                })
+            # Upload file to Supabase (assuming supabase client is configured)
+            res = supabase.storage.from_(BUCKET_NAME).upload(file_path, uploaded_file, {
+                "content-type": uploaded_file.content_type
+            })
 
-                if isinstance(res, dict) and res.get("error"):
-                    raise Exception(res["error"])
-
+            if res.get("error"):
+                print("Upload error:", res["error"])
+            else:
                 public_url = f"https://{SUPABASE_PROJECT_ID}.supabase.co/storage/v1/object/public/{BUCKET_NAME}/{file_path}"
 
-                UploadedFile.objects.create(
+                # Save the file to the model
+                uploaded_file_instance = UploadedFile.objects.create(
                     user_email=request.session['user_email'],
                     title=title,
                     public_url=public_url,
                     path_in_bucket=file_path,
-                    file=uploaded_file
+                    file=uploaded_file  # Save the uploaded file
                 )
                 return redirect('dashboard')
-            except Exception as e:
-                return render(request, "dashboard.html", {
-                    "form": form,
-                    "files": UploadedFile.objects.filter(user_email=request.session['user_email']),
-                    "error": f"Upload failed: {e}"
-                })
-
     else:
         form = UploadFileForm()
 
     uploaded_files = UploadedFile.objects.filter(user_email=request.session['user_email'])
-    return render(request, "dashboard.html", {"form": form, "files": uploaded_files})
-
-# Delete File View
+    return render(request, "dashboard.html", {
+        "form": form,
+        "files": uploaded_files
+    })
+    
 def delete_file(request, file_id):
-    if not is_logged_in(request):
+    if 'user_email' not in request.session:
         return redirect('login')
 
     uploaded_file = get_object_or_404(UploadedFile, id=file_id, user_email=request.session['user_email'])
@@ -112,21 +99,71 @@ def delete_file(request, file_id):
 
     return redirect('dashboard')
 
-# Download File View
-def download_file(request, file_id):
-    if not is_logged_in(request):
-        return redirect('login')
+def handle_uploaded_file(f):
+    # Save file to storage (Supabase Storage)
+    file_name = f.name
+    file_content = f.read()
 
-    uploaded_file = get_object_or_404(UploadedFile, id=file_id)
-    file_path = uploaded_file.path_in_bucket
-    response = supabase.storage.from_(BUCKET_NAME).create_signed_url(file_path, 60)
-    signed_url = response.get("signedURL")
+    # Upload to Supabase Storage bucket named 'uploads'
+    result = supabase.storage.from_('uploads').upload(file_name, file_content, {"content-type": f.content_type})
 
-    if signed_url:
-        return redirect(signed_url)
+    if result.get("error"):
+        raise Exception("Upload failed: " + str(result["error"]))
+
+    # Return the path or public URL
+    return f"uploads/{file_name}"
+
+def upload(request):
+    if request.method == "POST" and request.FILES.get("file"):
+        form = UploadFileForm(request.POST, request.FILES)
+        if form.is_valid():
+            file = request.FILES["file"]
+            file_title = form.cleaned_data["title"]
+            user = request.user
+
+            # Upload file to Supabase
+            try:
+                file_data = file.read()
+                file_path = f"{user.id}/{datetime.now().timestamp()}_{file.name}"
+
+                supabase.storage.from_("uploads").upload(
+                    path=file_path,
+                    file=file_data,
+                    file_options={"content-type": file.content_type}
+                )
+
+                # Get public URL
+                file_url = supabase.storage.from_("uploads").get_public_url(file_path)
+
+                UploadedFile.objects.create(
+                    title=file_title,
+                    file_url=file_url,
+                    user=user
+                )
+
+                return render(request, "upload.html", {
+                    "form": UploadFileForm(),
+                    "success": "File uploaded successfully!",
+                })
+            except Exception as e:
+                return render(request, "upload.html", {
+                    "form": form,
+                    "error": f"Supabase upload failed: {e}"
+                })
+
     else:
-        return HttpResponse("Failed to generate download link", status=400)
+        form = UploadFileForm()
 
+    return render(request, "upload.html", {"form": form})
+
+# def delete_file(request, file_id):
+#     if request.method == 'POST':
+#         try:
+#             file = get_object_or_404(UploadedFile, id=file_id)
+#             file.delete()  # Ensure to remove from storage as well if needed
+#             return redirect('dashboard')
+#         except UploadedFile.DoesNotExist:
+#             return redirect('dashboard')  # If file doesn't exist, just redirect to dashboard
 
 # Google Login
 def google_login(request):
@@ -266,6 +303,22 @@ def logout_view(request):
 
 from supabase import create_client
 import time
+
+
+def download_file(request, file_id):
+    uploaded_file = get_object_or_404(UploadedFile, id=file_id)
+
+    # Get path of the file in the bucket (e.g., "myfiles/report.pdf")
+    file_path = uploaded_file.path_in_bucket  # ensure you store this when uploading
+
+    # Generate signed URL (valid for 60 seconds)
+    response = supabase.storage.from_('uploads').create_signed_url(file_path, 60)
+    signed_url = response.get("signedURL")
+
+    if signed_url:
+        return redirect(signed_url)
+    else:
+        return HttpResponse("Failed to generate download link", status=400)
 
 
 
