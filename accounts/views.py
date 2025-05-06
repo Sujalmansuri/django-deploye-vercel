@@ -22,7 +22,7 @@ load_dotenv()
 # Supabase setup
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_API_KEY = os.getenv("SUPABASE_API_KEY")
-SUPABASE_PROJECT_ID = SUPABASE_URL.split("//")[1].split(".")[0]
+SUPABASE_PROJECT_ID = os.getenv("SUPABASE_PROJECT_ID") 
 BUCKET_NAME = "uploads"
 
 supabase = create_client(SUPABASE_URL, SUPABASE_API_KEY)
