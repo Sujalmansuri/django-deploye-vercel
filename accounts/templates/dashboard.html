@@ -104,20 +104,15 @@
                     </div>
                     <div class="file-actions">
                         {% if file.file %}
-                            <a href="{{ file.file.url }}" class="btn btn-primary" download>
-                                <i class="fa fa-download"></i> Download
-                            </a>
-                        {% else %}
-                            <span class="text-muted">No file available</span>
-                        {% endif %}
-                        <!-- Download Button -->
-                      <!-- Download Button -->
-                      <a href="{{ file.public_url }}" download="{{ file.title }}" class="btn btn-success" style="display:inline;">
-                        <i class="fa fa-download"></i> Download
-                    </a>
+                        <a href="{{ file.file.url }}" class="btn btn-primary" download>
+                            <i class="fa fa-download"></i> Download
+                        </a>
+                    {% else %}
+                        <span class="text-muted">No file available</span>
+                    {% endif %}
                     
-                        
-                        <form action="{% url 'delete_file' file.id %}" method="post" style="display:inline;">
+                        <!-- Download Button -->
+                    <form action="{% url 'delete_file' file.id %}" method="post" style="display:inline;">
                             {% csrf_token %}
                             <button type="submit" class="btn btn-danger">
                                 <i class="fa fa-trash"></i> Delete

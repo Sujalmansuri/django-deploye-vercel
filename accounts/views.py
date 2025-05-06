@@ -14,6 +14,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth import authenticate, login, logout
 from .forms import UploadFileForm
 import uuid
+from accounts import views
 # Load environment variables from .env file
 load_dotenv()
 SUPABASE_URL = os.getenv("SUPABASE_URL")
@@ -47,22 +48,21 @@ from django.shortcuts import redirect
 
 def dashboard(request):
     if 'user_email' not in request.session:
-        return redirect('login')  # or your login URL
+        return redirect('login')
 
     if request.method == "POST":
         form = UploadFileForm(request.POST, request.FILES)
         if form.is_valid():
             title = form.cleaned_data["title"]
-            file = request.FILES["file"]
+            uploaded_file = request.FILES["file"]
 
-            # Optional: user_folder from email (or session-based unique ID)
             folder_name = f"user-{request.session['user_email'].split('@')[0]}"
-            file_name = f"{uuid.uuid4()}_{file.name}"
+            file_name = f"{uuid.uuid4()}_{uploaded_file.name}"
             file_path = f"{folder_name}/{file_name}"
 
-            # Upload file
-            res = supabase.storage.from_(BUCKET_NAME).upload(file_path, file, {
-                "content-type": file.content_type
+            # Upload file to Supabase (assuming supabase client is configured)
+            res = supabase.storage.from_(BUCKET_NAME).upload(file_path, uploaded_file, {
+                "content-type": uploaded_file.content_type
             })
 
             if res.get("error"):
@@ -70,11 +70,13 @@ def dashboard(request):
             else:
                 public_url = f"https://{SUPABASE_PROJECT_ID}.supabase.co/storage/v1/object/public/{BUCKET_NAME}/{file_path}"
 
-                UploadedFile.objects.create(
+                # Save the file to the model
+                uploaded_file_instance = UploadedFile.objects.create(
                     user_email=request.session['user_email'],
                     title=title,
                     public_url=public_url,
-                    path_in_bucket=file_path
+                    path_in_bucket=file_path,
+                    file=uploaded_file  # Save the uploaded file
                 )
                 return redirect('dashboard')
     else:
@@ -85,7 +87,7 @@ def dashboard(request):
         "form": form,
         "files": uploaded_files
     })
-
+    
 def delete_file(request, file_id):
     if 'user_email' not in request.session:
         return redirect('login')
@@ -317,6 +319,8 @@ def download_file(request, file_id):
         return redirect(signed_url)
     else:
         return HttpResponse("Failed to generate download link", status=400)
+
+
 
 
 

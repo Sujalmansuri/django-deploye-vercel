@@ -19,9 +19,10 @@ class User_Data(models.Model):
 
 class UploadedFile(models.Model):
     title = models.CharField(max_length=255)
+    file = models.FileField(upload_to='uploads/')  # New field to store the file
     public_url = models.URLField()
     path_in_bucket = models.CharField(max_length=255)
-    user_email = models.EmailField()  # 👈 Not a ForeignKey
+    user_email = models.EmailField()
     uploaded_at = models.DateTimeField(auto_now_add=True)
 
 class CustomUser(models.Model):
