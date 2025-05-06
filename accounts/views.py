@@ -56,7 +56,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import redirect
 
-@login_required(login_url='login')  # Replace 'login' with your login URL name
+
 def dashboard(request):
     if request.method == "POST":
         form = UploadFileForm(request.POST, request.FILES)
