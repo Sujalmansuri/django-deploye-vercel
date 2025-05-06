@@ -21,7 +21,7 @@ load_dotenv()
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_API_KEY = os.getenv("SUPABASE_API_KEY")
 supabase = create_client(SUPABASE_URL, SUPABASE_API_KEY)
-
+SUPABASE_PROJECT_ID=os.getenv("SUPABASE_PROJECT_ID")
 # Ensure OAuth works in dev environment
 os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
 
@@ -57,7 +57,7 @@ def dashboard(request):
             file_path = f"{folder_name}/{file_name}"
 
             # Upload to Supabase bucket
-            res = supabase.storage.from_(BUCKET_NAME).upload(file_path, file, {
+            res = supabase.storage.from_(uploads).upload(file_path, file, {
                 "content-type": file.content_type
             })
 
@@ -65,7 +65,7 @@ def dashboard(request):
                 print("Upload error:", res["error"])
             else:
                 # Manually construct public URL
-                public_url = f"https://{SUPABASE_PROJECT_ID}.supabase.co/storage/v1/object/public/{BUCKET_NAME}/{file_path}"
+                public_url = f"https://{SUPABASE_PROJECT_ID}.supabase.co/storage/v1/object/public/{uploads}/{file_path}"
 
                 # Save record
                 UploadedFile.objects.create(
