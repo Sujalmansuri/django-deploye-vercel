@@ -113,57 +113,6 @@ def handle_uploaded_file(f):
     # Return the path or public URL
     return f"uploads/{file_name}"
 
-def upload(request):
-    if request.method == "POST" and request.FILES.get("file"):
-        form = UploadFileForm(request.POST, request.FILES)
-        if form.is_valid():
-            file = request.FILES["file"]
-            file_title = form.cleaned_data["title"]
-            user = request.user
-
-            # Upload file to Supabase
-            try:
-                file_data = file.read()
-                file_path = f"{user.id}/{datetime.now().timestamp()}_{file.name}"
-
-                supabase.storage.from_("uploads").upload(
-                    path=file_path,
-                    file=file_data,
-                    file_options={"content-type": file.content_type}
-                )
-
-                # Get public URL
-                file_url = supabase.storage.from_("uploads").get_public_url(file_path)
-
-                UploadedFile.objects.create(
-                    title=file_title,
-                    file_url=file_url,
-                    user=user
-                )
-
-                return render(request, "upload.html", {
-                    "form": UploadFileForm(),
-                    "success": "File uploaded successfully!",
-                })
-            except Exception as e:
-                return render(request, "upload.html", {
-                    "form": form,
-                    "error": f"Supabase upload failed: {e}"
-                })
-
-    else:
-        form = UploadFileForm()
-
-    return render(request, "upload.html", {"form": form})
-
-# def delete_file(request, file_id):
-#     if request.method == 'POST':
-#         try:
-#             file = get_object_or_404(UploadedFile, id=file_id)
-#             file.delete()  # Ensure to remove from storage as well if needed
-#             return redirect('dashboard')
-#         except UploadedFile.DoesNotExist:
-#             return redirect('dashboard')  # If file doesn't exist, just redirect to dashboard
 
 # Google Login
 def google_login(request):
