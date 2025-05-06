@@ -21,7 +21,6 @@ SUPABASE_API_KEY = os.getenv("SUPABASE_API_KEY")
 SUPABASE_PROJECT_ID = os.getenv("SUPABASE_PROJECT_ID")  # e.g., 'pwagvdywirofdoqgghkj'
 BUCKET_NAME = "uploads"
 
-
 # Ensure OAuth works in dev environment
 os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
 
@@ -44,13 +43,11 @@ def signup_page(request):
     return render(request, 'signup.html')
 
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth.decorators import login_required
 from django.shortcuts import redirect
 
 def dashboard(request):
-    user_email = request.session.get('user_email')
-    if not user_email:
-        return redirect('login')
+    if 'user_email' not in request.session:
+        return redirect('login')  # or your login URL
 
     if request.method == "POST":
         form = UploadFileForm(request.POST, request.FILES)
@@ -58,10 +55,12 @@ def dashboard(request):
             title = form.cleaned_data["title"]
             file = request.FILES["file"]
 
-            folder_name = f"user-{user_email}"
+            # Optional: user_folder from email (or session-based unique ID)
+            folder_name = f"user-{request.session['user_email'].split('@')[0]}"
             file_name = f"{uuid.uuid4()}_{file.name}"
             file_path = f"{folder_name}/{file_name}"
 
+            # Upload file
             res = supabase.storage.from_(BUCKET_NAME).upload(file_path, file, {
                 "content-type": file.content_type
             })
@@ -70,8 +69,9 @@ def dashboard(request):
                 print("Upload error:", res["error"])
             else:
                 public_url = f"https://{SUPABASE_PROJECT_ID}.supabase.co/storage/v1/object/public/{BUCKET_NAME}/{file_path}"
+
                 UploadedFile.objects.create(
-                    user_email=user_email,
+                    user_email=request.session['user_email'],
                     title=title,
                     public_url=public_url,
                     path_in_bucket=file_path
@@ -80,21 +80,22 @@ def dashboard(request):
     else:
         form = UploadFileForm()
 
-    uploaded_files = UploadedFile.objects.filter(user_email=user_email)
+    uploaded_files = UploadedFile.objects.filter(user_email=request.session['user_email'])
     return render(request, "dashboard.html", {
         "form": form,
         "files": uploaded_files
     })
 
 def delete_file(request, file_id):
-    user_email = request.session.get('user_email')
-    if not user_email:
+    if 'user_email' not in request.session:
         return redirect('login')
 
-    uploaded_file = get_object_or_404(UploadedFile, id=file_id, user_email=user_email)
+    uploaded_file = get_object_or_404(UploadedFile, id=file_id, user_email=request.session['user_email'])
+
     supabase.storage.from_(BUCKET_NAME).remove([uploaded_file.path_in_bucket])
     uploaded_file.delete()
-    return redirect("dashboard")
+
+    return redirect('dashboard')
 
 def handle_uploaded_file(f):
     # Save file to storage (Supabase Storage)
