@@ -12,7 +12,6 @@ urlpatterns = [
     path('signup/submit/', views.signup_submit, name='signup_submit'),
     path('logout/', views.logout_view, name='logout'),
     path('dashboard/', views.dashboard, name='dashboard'),
-    #path('upload/', views.upload, name='upload'),
     path('delete/<int:file_id>/', views.delete_file, name='delete_file'),
     
     # Google OAuth Routes
