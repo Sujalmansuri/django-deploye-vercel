@@ -95,11 +95,12 @@ def dashboard(request):
 
             # Save to DB
             UploadedFile.objects.create(
-                title=title,
-                file_url=file_url,
-                path_in_bucket=file_name,
-                user=user
+            title=title,
+            file_url=file_url,
+            path_in_bucket=file_name,
+            user_email=user_email
             )
+
             messages.success(request, "File uploaded successfully.")
             return redirect('dashboard')
         else:
@@ -110,7 +111,7 @@ def dashboard(request):
 
     # File list for the current user
     query = request.GET.get('q', '')
-    files = UploadedFile.objects.filter(user=user)
+    files = UploadedFile.objects.filter(user_email=user_email)
     if query:
         files = files.filter(title__icontains=query)
 
