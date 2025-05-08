@@ -8,6 +8,8 @@ from google.oauth2 import id_token
 from google.auth.transport import requests as google_requests
 from supabase import create_client
 import os
+import requests
+from django.contrib import messages
 from dotenv import load_dotenv
 from datetime import datetime
 from django.contrib.auth.decorators import login_required
@@ -49,71 +51,69 @@ from django.contrib.auth.decorators import login_required
 from django.shortcuts import redirect
 
 def dashboard(request):
-    if 'user_email' not in request.session:
-        return redirect('login')
-
-    if request.method == "POST":
+    # Handle Upload
+    if request.method == 'POST':
         form = UploadFileForm(request.POST, request.FILES)
         if form.is_valid():
-            title = form.cleaned_data["title"]
-            uploaded_file = request.FILES["file"]
+            file = request.FILES['file']
+            file_name = file.name
+            user_email = request.POST.get('user_email')
+            supabase_bucket = "uploads"
 
-            folder_name = f"user-{request.session['user_email'].split('@')[0]}"
-            file_name = f"{uuid.uuid4()}_{uploaded_file.name}"
-            file_path = f"{folder_name}/{file_name}"
+            upload_url = f"{settings.SUPABASE_URL}/storage/v1/object/{supabase_bucket}/{file_name}"
 
-            # Upload file to Supabase (assuming supabase client is configured)
-            res = supabase.storage.from_(BUCKET_NAME).upload(file_path, uploaded_file, {
-                "content-type": uploaded_file.content_type
-            })
+            headers = {
+                "apikey": settings.SUPABASE_API_KEY,
+                "Authorization": f"Bearer {settings.SUPABASE_API_KEY}",
+                "Content-Type": file.content_type,
+            }
 
-            if res.get("error"):
-                print("Upload error:", res["error"])
-            else:
-                public_url = f"https://{SUPABASE_PROJECT_ID}.supabase.co/storage/v1/object/public/{BUCKET_NAME}/{file_path}"
+            response = requests.post(
+                upload_url,
+                headers=headers,
+                data=file.read()
+            )
 
-                # Save the file to the model
-                uploaded_file_instance = UploadedFile.objects.create(
-                    user_email=request.session['user_email'],
-                    title=title,
-                    public_url=public_url,
-                    path_in_bucket=file_path,
-                    file=uploaded_file  # Save the uploaded file
-                )
+            if response.status_code in [200, 201]:
+                file_instance = form.save(commit=False)
+                file_instance.user_email = user_email
+                file_instance.public_url = f"{settings.SUPABASE_URL}/storage/v1/object/public/{supabase_bucket}/{file_name}"
+                file_instance.path_in_bucket = file_name
+                file_instance.save()
+                messages.success(request, "File uploaded successfully.")
                 return redirect('dashboard')
-    else:
-        form = UploadFileForm()
-
-    uploaded_files = UploadedFile.objects.filter(user_email=request.session['user_email'])
-    return render(request, "dashboard.html", {
-        "form": form,
-        "files": uploaded_files
-    })
+            else:
+                messages.error(request, f"Upload failed: {response.text}")
     
-def delete_file(request, file_id):
-    if 'user_email' not in request.session:
-        return redirect('login')
+    # Load Form and Files
+    form = UploadFileForm()
+    query = request.GET.get('q')
+    files = UploadedFile.objects.filter(title__icontains=query) if query else UploadedFile.objects.all()
 
-    uploaded_file = get_object_or_404(UploadedFile, id=file_id, user_email=request.session['user_email'])
+    return render(request, 'dashboard.html', {
+        'form': form,
+        'files': files,
+        'query': query or ''
+    })
 
-    supabase.storage.from_(BUCKET_NAME).remove([uploaded_file.path_in_bucket])
-    uploaded_file.delete()
+def delete_file(request, pk):
+    file = UploadedFile.objects.get(pk=pk)
+    supabase_bucket = "uploads"
+    delete_url = f"{settings.SUPABASE_URL}/storage/v1/object/{supabase_bucket}/{file.path_in_bucket}"
+
+    headers = {
+        "apikey": settings.SUPABASE_API_KEY,
+        "Authorization": f"Bearer {settings.SUPABASE_API_KEY}",
+    }
+
+    response = requests.delete(delete_url, headers=headers)
+    if response.status_code in [200, 204]:
+        file.delete()
+        messages.success(request, "File deleted successfully.")
+    else:
+        messages.error(request, "File deletion from Supabase failed.")
 
     return redirect('dashboard')
-
-def handle_uploaded_file(f):
-    # Save file to storage (Supabase Storage)
-    file_name = f.name
-    file_content = f.read()
-
-    # Upload to Supabase Storage bucket named 'uploads'
-    result = supabase.storage.from_('uploads').upload(file_name, file_content, {"content-type": f.content_type})
-
-    if result.get("error"):
-        raise Exception("Upload failed: " + str(result["error"]))
-
-    # Return the path or public URL
-    return f"uploads/{file_name}"
 
 
 # Google Login
