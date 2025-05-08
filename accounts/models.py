@@ -18,8 +18,7 @@ class User_Data(models.Model):
 # models.py
 
 class UploadedFile(models.Model):
-    title = models.CharField(max_length=255)
-    file = models.FileField(upload_to='uploads/')  # New field to store the file
+    title = models.CharField(max_length=255) # New field to store the file
     public_url = models.URLField()
     path_in_bucket = models.CharField(max_length=255)
     user_email = models.EmailField()
