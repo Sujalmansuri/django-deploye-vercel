@@ -57,7 +57,7 @@
                             <small>{{ file.user_email }}</small>
                         </div>
                         <div>
-                            <a href="{{ file.public_url }}" class="btn btn-sm btn-outline-success" target="_blank">View</a>
+                            <a href="{{ file.file_url }}" class="btn btn-sm btn-outline-success" target="_blank">View</a>
                             <a href="{% url 'delete_file' file.pk %}" class="btn btn-sm btn-outline-danger">Delete</a>
                         </div>
                     </li>
