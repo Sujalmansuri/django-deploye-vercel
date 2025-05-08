@@ -111,22 +111,21 @@ def upload_file(request):
             return redirect('dashboard')
 
     return redirect('dashboard')
-
 def delete_file(request, file_id):
-    file = get_object_or_404(UploadedFile, id=file_id)
-
-
     try:
-        # Delete from Supabase Storage
-        response = supabase.storage.from_("uploads").remove([file.path_in_bucket])
+        file = get_object_or_404(UploadedFile, id=file_id)
+        bucket = supabase.storage.from_("uploads")
 
-        if response.get("error"):
-            messages.error(request, "Supabase deletion error: " + response["error"]["message"])
-        else:
-            # Delete from Django DB
-            file.delete()
+        # Attempt to delete from Supabase storage
+        delete_response = bucket.remove([file.path_in_bucket])
+
+        # Check for errors (if any)
+        if isinstance(delete_response, list):
+            # Supabase returns a list of deleted file paths
+            file.delete()  # Delete from Django DB
             messages.success(request, "File deleted successfully.")
-
+        else:
+            messages.error(request, f"Failed to delete from Supabase: {delete_response}")
     except Exception as e:
         messages.error(request, f"Error deleting file: {str(e)}")
 
