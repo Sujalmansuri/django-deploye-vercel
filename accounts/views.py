@@ -271,28 +271,6 @@ def logout_view(request):
 
 from supabase import create_client
 import time
-
-# def download_file(request, file_id):
-#     uploaded_file = get_object_or_404(UploadedFile, id=file_id)
-#     file_path = uploaded_file.path_in_bucket
-
-#     try:
-#         result = supabase.storage.from_('uploads').create_signed_url(file_path, 60)
-
-#         # Check if it's a dictionary with 'signedURL'
-#         signed_url = result.get('signedURL') if isinstance(result, dict) else None
-
-#         if signed_url:
-#             return redirect(signed_url)
-#         else:
-#             return HttpResponse("Failed to generate signed URL", status=400)
-#     except Exception as e:
-#         return HttpResponse(f"Download error: {str(e)}", status=500)
-
-import requests
-from django.http import HttpResponse
-from .models import UploadedFile
-
 def download_file(request, file_id):
     uploaded_file = get_object_or_404(UploadedFile, id=file_id)
     file_url = uploaded_file.public_url
@@ -302,11 +280,11 @@ def download_file(request, file_id):
         response = requests.get(file_url, stream=True)
         response.raise_for_status()
 
-        # Extract filename
-        filename = uploaded_file.title or uploaded_file.path_in_bucket.split('/')[-1]
+        # Use the original filename from path_in_bucket
+        filename = uploaded_file.path_in_bucket  # includes extension like .csv
 
-        # Create Django response with download headers
-        django_response = HttpResponse(response.raw, content_type=response.headers['Content-Type'])
+        # Stream the file with correct content-disposition
+        django_response = HttpResponse(response.raw, content_type=response.headers.get('Content-Type', 'application/octet-stream'))
         django_response['Content-Disposition'] = f'attachment; filename="{filename}"'
         return django_response
 
