@@ -68,11 +68,8 @@ def dashboard(request):
                 "Content-Type": file.content_type,
             }
 
-            response = requests.post(
-                upload_url,
-                headers=headers,
-                data=file.read()
-            )
+            response = requests.put(upload_url, headers=headers, data=file.read())
+
 
             if response.status_code in [200, 201]:
                 file_instance = form.save(commit=False)
@@ -107,6 +104,7 @@ def delete_file(request, pk):
     }
 
     response = requests.delete(delete_url, headers=headers)
+
     if response.status_code in [200, 204]:
         file.delete()
         messages.success(request, "File deleted successfully.")
