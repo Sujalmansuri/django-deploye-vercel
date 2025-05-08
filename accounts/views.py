@@ -57,7 +57,7 @@ def dashboard(request):
         if form.is_valid():
             file = request.FILES['file']
             file_name = file.name
-            user_email = request.POST.get('user_email')
+            user_email = request.session.get('user_email')
             supabase_bucket = "uploads"
 
             upload_url = f"{SUPABASE_URL}/storage/v1/object/{supabase_bucket}/{file_name}"
@@ -89,10 +89,12 @@ def dashboard(request):
     files = UploadedFile.objects.filter(title__icontains=query) if query else UploadedFile.objects.all()
 
     return render(request, 'dashboard.html', {
-        'form': form,
-        'files': files,
-        'query': query or ''
-    })
+    'form': form,
+    'files': files,
+    'query': query or '',
+    'user_email': request.session.get('user_email')
+})
+
 
 def delete_file(request, pk):
     file = UploadedFile.objects.get(pk=pk)
