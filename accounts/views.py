@@ -55,13 +55,13 @@ def dashboard(request):
     query = request.GET.get('q', '')
     files = UploadedFile.objects.all().order_by('-uploaded_at')
 
-    # files = UploadedFile.objects.filter(
-    #     user_email=user_email,
-    #     title__icontains=query
-    # ).order_by('-uploaded_at')
-
     form = UploadFileForm()  # Just an empty form for the upload UI
 
+    if query:
+        files = UploadedFile.objects.filter(title__icontains=query).order_by('-uploaded_at')
+    else:
+        files = UploadedFile.objects.all().order_by('-uploaded_at')
+        
     return render(request, 'dashboard.html', {
         'form': form,
         'files': files,
@@ -113,25 +113,25 @@ def upload_file(request):
     return redirect('dashboard')
 
 def delete_file(request, pk):
-    file = UploadedFile.objects.get(pk=pk)
-    supabase_bucket = "uploads"
-    delete_url = f"{SUPABASE_URL}/storage/v1/object/{supabase_bucket}/{file.path_in_bucket}"
+    try:
+        file = UploadedFile.objects.get(pk=pk)
+        supabase_path = file.path_in_bucket
 
-    headers = {
-        "apikey":SUPABASE_API_KEY,
-        "Authorization": f"Bearer {SUPABASE_API_KEY}",
-    }
+        delete_res = supabase.storage.from_('uploads').remove([supabase_path])
 
-    response = requests.delete(delete_url, headers=headers)
+        # Check if deletion worked
+        if isinstance(delete_res, dict) and delete_res.get("error") is None:
+            file.delete()
+            messages.success(request, "File deleted successfully.")
+        else:
+            messages.error(request, "Failed to delete file from Supabase.")
 
-    if response.status_code in [200, 204]:
-        file.delete()
-        messages.success(request, "File deleted successfully.")
-    else:
-        messages.error(request, "File deletion from Supabase failed.")
+    except UploadedFile.DoesNotExist:
+        messages.error(request, "File not found.")
+    except Exception as e:
+        messages.error(request, f"Delete error: {str(e)}")
 
     return redirect('dashboard')
-
 
 # Google Login
 def google_login(request):
@@ -274,18 +274,17 @@ import time
 
 def download_file(request, file_id):
     uploaded_file = get_object_or_404(UploadedFile, id=file_id)
-    file_path = uploaded_file.path_in_bucket  # stored path in bucket
+    file_path = uploaded_file.path_in_bucket
 
-    # Generate a signed URL (valid for 60 seconds)
-    response = supabase.storage.from_('uploads').create_signed_url(file_path, 60)
+    try:
+        result = supabase.storage.from_('uploads').create_signed_url(file_path, 60)
 
-    signed_url = response.get("signedURL")
-    if signed_url:
-        return redirect(signed_url)  # This will trigger file download
-    else:
-        return HttpResponse("Failed to generate download link", status=400)
+        # Check if it's a dictionary with 'signedURL'
+        signed_url = result.get('signedURL') if isinstance(result, dict) else None
 
-
-
-
-
+        if signed_url:
+            return redirect(signed_url)
+        else:
+            return HttpResponse("Failed to generate signed URL", status=400)
+    except Exception as e:
+        return HttpResponse(f"Download error: {str(e)}", status=500)

@@ -41,7 +41,8 @@
         </div>
 
         <!-- Search -->
-        <form method="get" class="input-group mb-4">
+        
+        <form method="get" class="input-group mb-4" action="{% url 'dashboard' %}">
             <input type="text" name="q" value="{{ query }}" class="form-control" placeholder="Search by title...">
             <button class="btn btn-outline-secondary" type="submit">Search</button>
         </form>
@@ -58,7 +59,8 @@
                         </div>
                         <div>
                             <a href="{% url 'download_file' file.id %}" class="btn btn-sm btn-outline-success">Download</a>
-                            <a href="{% url 'delete_file' file.pk %}" class="btn btn-sm btn-outline-danger">Delete</a>
+                            <a href="{% url 'delete_file' file.id %}" class="btn btn-sm btn-outline-danger">Delete</a>
+
                         </div>
                     </li>
                 {% empty %}
