@@ -13,6 +13,7 @@ urlpatterns = [
     path('logout/', views.logout_view, name='logout'),
     path('dashboard/', views.dashboard, name='dashboard'),
     path('delete/<int:file_id>/', views.delete_file, name='delete_file'),
+    path('upload/', views.upload_file, name='upload_file'),
     
     # Google OAuth Routes
     path('google/login/', views.google_login, name='google_login'),

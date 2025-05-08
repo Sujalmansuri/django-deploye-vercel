@@ -47,15 +47,6 @@ def login_page(request):
 def signup_page(request):
     return render(request, 'signup.html')
 
-from django.contrib.auth.decorators import login_required
-from django.shortcuts import redirect
-from django.shortcuts import render, redirect
-from django.contrib import messages
-from .models import UploadedFile, User_Data
-from .forms import UploadFileForm
-from supabase import create_client
-import os
-
 # Load Supabase config
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_API_KEY = os.getenv("SUPABASE_API_KEY")
@@ -65,62 +56,62 @@ BUCKET_NAME = "uploads"
 def dashboard(request):
     user_email = request.session.get('user_email')
     if not user_email:
-        return redirect('login_page')
+        return redirect('home')
 
-    try:
-        user = User_Data.objects.get(email=user_email)
-    except User_Data.DoesNotExist:
-        messages.error(request, "User not found.")
-        return redirect('login_page')
-
-    if request.method == 'POST':
-        form = UploadFileForm(request.POST, request.FILES)
-        if form.is_valid():
-            file = request.FILES['file']
-            title = form.cleaned_data['title']
-            file_bytes = file.read()
-            file_name = file.name
-
-            # Upload to Supabase
-            bucket = supabase.storage.from_(BUCKET_NAME)
-            upload_res = bucket.upload(file_name, file_bytes)
-
-            # Check if upload succeeded
-            if hasattr(upload_res, 'error') and upload_res.error:
-                messages.error(request, f"Upload failed: {upload_res.error.message}")
-                return redirect('dashboard')
-
-            # Get public URL
-            file_url = bucket.get_public_url(file_name).get('publicURL')
-
-            # Save to DB
-            UploadedFile.objects.create(
-            title=title,
-            file_url=file_url,
-            path_in_bucket=file_name,
-            user_email=user_email
-            )
-
-            messages.success(request, "File uploaded successfully.")
-            return redirect('dashboard')
-        else:
-            messages.error(request, "Invalid form submission.")
-
-    else:
-        form = UploadFileForm()
-
-    # File list for the current user
     query = request.GET.get('q', '')
-    files = UploadedFile.objects.filter(user_email=user_email)
-    if query:
-        files = files.filter(title__icontains=query)
+    files = UploadedFile.objects.filter(
+        user_email=user_email,
+        title__icontains=query
+    ).order_by('-uploaded_at')
+
+    form = UploadFileForm()  # Just an empty form for the upload UI
 
     return render(request, 'dashboard.html', {
         'form': form,
-        'files': files.order_by('-uploaded_at'),
+        'files': files,
         'query': query,
         'user_email': user_email
     })
+
+def upload_file(request):
+    if request.method == 'POST':
+        user_email = request.session.get('user_email')
+        if not user_email:
+            return redirect('login')
+
+        form = UploadFileForm(request.POST, request.FILES)
+        if form.is_valid():
+            file = request.FILES['file']
+            file_name = file.name
+            supabase_bucket = "uploads"
+
+            try:
+                # Upload file to Supabase
+                upload_response = supabase.storage.from_(supabase_bucket).upload(file_name, file.read())
+                if hasattr(upload_response, 'error') and upload_response.error:
+                    messages.error(request, f"Upload failed: {upload_response.error.message}")
+                    return redirect('dashboard')
+
+                # Save file info in DB
+                public_url = supabase.storage.from_(supabase_bucket).get_public_url(file_name).get("publicURL")
+
+                UploadedFile.objects.create(
+                    title=request.POST.get('title', file_name),
+                    file=file,
+                    path_in_bucket=file_name,
+                    public_url=public_url,
+                    user_email=user_email
+                )
+
+                messages.success(request, "File uploaded successfully.")
+            except Exception as e:
+                messages.error(request, f"Upload error: {str(e)}")
+
+        else:
+            messages.error(request, "Invalid form submission.")
+
+    return redirect('dashboard')
+
 
 def delete_file(request, pk):
     file = UploadedFile.objects.get(pk=pk)

@@ -22,7 +22,7 @@
                         </div>
                     {% endfor %}
                 {% endif %}
-                <form method="post" enctype="multipart/form-data">
+                <form method="post" enctype="multipart/form-data" action="{% url 'upload_file' %}">
                     {% csrf_token %}
                     <div class="mb-3">
                         {{ form.title.label_tag }} 
