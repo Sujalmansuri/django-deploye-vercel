@@ -14,6 +14,8 @@ urlpatterns = [
     path('dashboard/', views.dashboard, name='dashboard'),
     path('delete/<int:file_id>/', views.delete_file, name='delete_file'),
     path('upload/', views.upload_file, name='upload_file'),
+    path('download/<int:file_id>/', views.download_file, name='download_file'),
+
     
     # Google OAuth Routes
     path('google/login/', views.google_login, name='google_login'),
@@ -21,9 +23,6 @@ urlpatterns = [
 
     # Email/Password Login Handler
     path('login-handler/', views.login_view, name='login'),
-
-    # File Download
-    path('download/<int:file_id>/', views.download_file, name='download_file'),
 ]
 
 # Serving media files during development

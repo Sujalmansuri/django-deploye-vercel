@@ -47,22 +47,18 @@ def login_page(request):
 def signup_page(request):
     return render(request, 'signup.html')
 
-# Load Supabase config
-SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_API_KEY = os.getenv("SUPABASE_API_KEY")
-supabase = create_client(SUPABASE_URL, SUPABASE_API_KEY)
-BUCKET_NAME = "uploads"
-
 def dashboard(request):
     user_email = request.session.get('user_email')
     if not user_email:
         return redirect('home')
 
     query = request.GET.get('q', '')
-    files = UploadedFile.objects.filter(
-        user_email=user_email,
-        title__icontains=query
-    ).order_by('-uploaded_at')
+    files = UploadedFile.objects.all().order_by('-uploaded_at')
+
+    # files = UploadedFile.objects.filter(
+    #     user_email=user_email,
+    #     title__icontains=query
+    # ).order_by('-uploaded_at')
 
     form = UploadFileForm()  # Just an empty form for the upload UI
 
@@ -276,19 +272,16 @@ def logout_view(request):
 from supabase import create_client
 import time
 
-
 def download_file(request, file_id):
     uploaded_file = get_object_or_404(UploadedFile, id=file_id)
+    file_path = uploaded_file.path_in_bucket  # stored path in bucket
 
-    # Get path of the file in the bucket (e.g., "myfiles/report.pdf")
-    file_path = uploaded_file.path_in_bucket  # ensure you store this when uploading
-
-    # Generate signed URL (valid for 60 seconds)
+    # Generate a signed URL (valid for 60 seconds)
     response = supabase.storage.from_('uploads').create_signed_url(file_path, 60)
-    signed_url = response.get("signedURL")
 
+    signed_url = response.get("signedURL")
     if signed_url:
-        return redirect(signed_url)
+        return redirect(signed_url)  # This will trigger file download
     else:
         return HttpResponse("Failed to generate download link", status=400)
 
