@@ -63,18 +63,18 @@ def dashboard(request):
             upload_url = f"{settings.SUPABASE_URL}/storage/v1/object/{supabase_bucket}/{file_name}"
 
             headers = {
-                "apikey": settings.SUPABASE_API_KEY,
-                "Authorization": f"Bearer {settings.SUPABASE_API_KEY}",
+                "apikey":SUPABASE_API_KEY,
+                "Authorization": f"Bearer {SUPABASE_API_KEY}",
                 "Content-Type": file.content_type,
             }
-
+            
             response = requests.put(upload_url, headers=headers, data=file.read())
 
 
             if response.status_code in [200, 201]:
                 file_instance = form.save(commit=False)
                 file_instance.user_email = user_email
-                file_instance.public_url = f"{settings.SUPABASE_URL}/storage/v1/object/public/{supabase_bucket}/{file_name}"
+                file_instance.public_url = f"{SUPABASE_URL}/storage/v1/object/public/{supabase_bucket}/{file_name}"
                 file_instance.path_in_bucket = file_name
                 file_instance.save()
                 messages.success(request, "File uploaded successfully.")
@@ -96,11 +96,11 @@ def dashboard(request):
 def delete_file(request, pk):
     file = UploadedFile.objects.get(pk=pk)
     supabase_bucket = "uploads"
-    delete_url = f"{settings.SUPABASE_URL}/storage/v1/object/{supabase_bucket}/{file.path_in_bucket}"
+    delete_url = f"{SUPABASE_URL}/storage/v1/object/{supabase_bucket}/{file.path_in_bucket}"
 
     headers = {
-        "apikey": settings.SUPABASE_API_KEY,
-        "Authorization": f"Bearer {settings.SUPABASE_API_KEY}",
+        "apikey":SUPABASE_API_KEY,
+        "Authorization": f"Bearer {SUPABASE_API_KEY}",
     }
 
     response = requests.delete(delete_url, headers=headers)
