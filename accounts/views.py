@@ -97,15 +97,15 @@ def upload_file(request):
                 messages.error(request, f"Upload failed: {upload_response.error.message}")
                 return redirect('dashboard')
 
-            public_url = supabase.storage.from_(supabase_bucket).get_public_url(file_name).get("publicURL")
+            public_url = supabase.storage.from_(supabase_bucket).get_public_url(file_name)
 
-            # ✅ Save file metadata in Django database
             UploadedFile.objects.create(
-                title=title,
-                public_url=public_url,
-                path_in_bucket=file_name,
-                user_email=user_email
+            title=title,
+            public_url=public_url,
+            path_in_bucket=file_name,
+            user_email=user_email
             )
+
 
             messages.success(request, "File uploaded and metadata saved successfully.")
             return redirect('dashboard')
