@@ -71,8 +71,10 @@ def dashboard(request):
 
                 # Upload the file
                 upload_res = bucket.upload(file_name, file_bytes)
-                if upload_res.get("error"):
-                    messages.error(request, f"Upload failed: {upload_res.get('error').get('message')}")
+
+                # Check for error using status_code
+                if upload_res.status_code != 200:
+                    messages.error(request, f"Upload failed: {upload_res.error}")
                     return redirect('dashboard')
 
                 # Get the public URL for the file
@@ -104,7 +106,6 @@ def dashboard(request):
         'query': query or '',
         'user_email': request.session.get('user_email')
     })
-
 
 def upload(request):
     if request.method == 'POST':
