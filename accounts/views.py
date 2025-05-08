@@ -60,7 +60,7 @@ def dashboard(request):
             user_email = request.POST.get('user_email')
             supabase_bucket = "uploads"
 
-            upload_url = f"{settings.SUPABASE_URL}/storage/v1/object/{supabase_bucket}/{file_name}"
+            upload_url = f"{SUPABASE_URL}/storage/v1/object/{supabase_bucket}/{file_name}"
 
             headers = {
                 "apikey":SUPABASE_API_KEY,
