@@ -49,52 +49,104 @@ def signup_page(request):
 
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import redirect
-
+# Dashboard View 
 def dashboard(request):
-    # Handle Upload
     if request.method == 'POST':
         form = UploadFileForm(request.POST, request.FILES)
         if form.is_valid():
             file = request.FILES['file']
             file_name = file.name
             user_email = request.session.get('user_email')
-            supabase_bucket = "uploads"
-
-            upload_url = f"{SUPABASE_URL}/storage/v1/object/{supabase_bucket}/{file_name}"
-
-            headers = {
-                "apikey":SUPABASE_API_KEY,
-                "Authorization": f"Bearer {SUPABASE_API_KEY}",
-                "Content-Type": file.content_type,
-            }
             
-            #response = requests.put(upload_url, headers=headers, data=file.read())
-            response = supabase.storage.from_('uploads').upload(file_name, file)
+            try:
+                user = User_Data.objects.get(email=user_email)
+            except User_Data.DoesNotExist:
+                messages.error(request, "User not found.")
+                return redirect('dashboard')
 
+            # Convert file to bytes and upload to Supabase
+            try:
+                file_bytes = file.read()
+                bucket = supabase.storage.from_("uploads")  # Ensure 'uploads' bucket exists
 
-            if response.status_code in [200, 201]:
-                file_instance = form.save(commit=False)
-                file_instance.user_email = user_email
-                file_instance.public_url = f"{SUPABASE_URL}/storage/v1/object/public/{supabase_bucket}/{file_name}"
-                file_instance.path_in_bucket = file_name
-                file_instance.save()
+                # Upload the file
+                upload_res = bucket.upload(file_name, file_bytes)
+                if upload_res.get("error"):
+                    messages.error(request, f"Upload failed: {upload_res.get('error').get('message')}")
+                    return redirect('dashboard')
+
+                # Get the public URL for the file
+                file_url = bucket.get_public_url(file_name).get('publicURL')
+
+                # Save file info in DB
+                UploadedFile.objects.create(
+                    title=form.cleaned_data['title'],
+                    file_url=file_url,
+                    user=user,
+                    path_in_bucket=file_name  # Save the file path in the bucket
+                )
+
                 messages.success(request, "File uploaded successfully.")
                 return redirect('dashboard')
-            else:
-                messages.error(request, f"Upload failed: {response.text}")
-    
-    # Load Form and Files
-    form = UploadFileForm()
+            except Exception as e:
+                messages.error(request, f"Error uploading file: {str(e)}")
+                return redirect('dashboard')
+
+    else:
+        form = UploadFileForm()
+
     query = request.GET.get('q')
     files = UploadedFile.objects.filter(title__icontains=query) if query else UploadedFile.objects.all()
 
     return render(request, 'dashboard.html', {
-    'form': form,
-    'files': files,
-    'query': query or '',
-    'user_email': request.session.get('user_email')
-})
+        'form': form,
+        'files': files,
+        'query': query or '',
+        'user_email': request.session.get('user_email')
+    })
 
+
+def upload(request):
+    if request.method == 'POST':
+        # Retrieve form data
+        title = request.POST['title']
+        file = request.FILES['file']
+        user_email = request.session.get('user_email')  # Make sure the session contains user_email
+        try:
+            user = User_Data.objects.get(email=user_email)  # Get the user object
+        except User_Data.DoesNotExist:
+            messages.error(request, "User does not exist.")
+            return redirect('dashboard')
+
+        # Convert file to bytes and upload to Supabase
+        try:
+            file_bytes = file.read()
+            bucket = supabase.storage.from_("uploads")  # Ensure 'uploads' bucket exists
+            file_name = file.name
+
+            # Upload the file
+            upload_res = bucket.upload(file_name, file_bytes)
+            if upload_res.get("error"):
+                messages.error(request, f"Upload failed: {upload_res.get('error').get('message')}")
+                return redirect('dashboard')
+
+            # Get the public URL for the file
+            file_url = bucket.get_public_url(file_name).get('publicURL')
+
+            # Store the file URL or other relevant details in the database
+            UploadedFile.objects.create(
+                title=title,
+                file_url=file_url,
+                user=user
+            )
+            messages.success(request, "File uploaded successfully.")
+            return redirect('dashboard')
+
+        except Exception as e:
+            messages.error(request, f"Error uploading file: {str(e)}")
+            return redirect('dashboard')
+
+    return render(request, "upload.html")
 
 def delete_file(request, pk):
     file = UploadedFile.objects.get(pk=pk)
