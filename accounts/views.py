@@ -68,7 +68,8 @@ def dashboard(request):
                 "Content-Type": file.content_type,
             }
             
-            response = requests.put(upload_url, headers=headers, data=file.read())
+            #response = requests.put(upload_url, headers=headers, data=file.read())
+            response = supabase.storage.from_('uploads').upload(file_name, file)
 
 
             if response.status_code in [200, 201]:
