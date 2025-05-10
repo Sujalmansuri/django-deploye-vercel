@@ -1,10 +1,8 @@
-# Standard library
 import os
 import uuid
 import time
 from datetime import datetime
 
-# Third-party
 import requests
 from dotenv import load_dotenv
 from google_auth_oauthlib.flow import Flow
@@ -12,7 +10,6 @@ from google.oauth2 import id_token
 from google.auth.transport import requests as google_requests
 from supabase import create_client
 
-# Django
 from django.conf import settings
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import HttpResponse, JsonResponse, Http404
@@ -20,13 +17,9 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.hashers import make_password, check_password
 from django.contrib.auth import authenticate, login, logout
-
-# Local app
 from .models import User_Data, UploadedFile
 from .forms import UploadFileForm
 from accounts import views
-
-# Load environment variables
 load_dotenv()
 
 # Supabase config
@@ -36,11 +29,8 @@ SUPABASE_PROJECT_ID = os.getenv("SUPABASE_PROJECT_ID")
 BUCKET_NAME = "uploads"
 supabase = create_client(SUPABASE_URL, SUPABASE_API_KEY)
 
-# OAuth settings
 os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
 
-
-# --------------------- Views ---------------------
 
 def redirect_if_logged_in(request):
     if request.session.get('user_email'):
@@ -156,8 +146,6 @@ def download_file(request, file_id):
     except requests.RequestException:
         return HttpResponse("Error fetching file.", status=500)
 
-
-# --------------------- Authentication ---------------------
 
 def google_login(request):
     flow = Flow.from_client_config(
