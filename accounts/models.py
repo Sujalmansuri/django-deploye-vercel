@@ -19,7 +19,7 @@ class UploadedFile(models.Model):
     path_in_bucket = models.CharField(max_length=255)
     user_email = models.EmailField()
     uploaded_at = models.DateTimeField(auto_now_add=True)
-    user = models.ForeignKey(User, on_delete=models.CASCADE)  
+    #user = models.ForeignKey(User, on_delete=models.CASCADE)  
 
 class CustomUser(models.Model):
     email = models.EmailField(unique=True)
