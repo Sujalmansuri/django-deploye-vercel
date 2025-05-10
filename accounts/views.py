@@ -33,10 +33,10 @@ os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
 
 
 def redirect_if_logged_in(request):
-    if request.session.get('user_email'):
+    user_email = request.session.get('user_email')
+    if user_email and User_Data.objects.filter(email=user_email).exists():
         return redirect('dashboard')
     return redirect('login')
-
 
 def home(request):
     return render(request, 'Home.html')
@@ -102,7 +102,7 @@ def upload_file(request):
                 title=title,
                 public_url=public_url,
                 path_in_bucket=file_name,
-                user_email=user_email
+                user_email=user_email,
             )
 
             messages.success(request, "File uploaded and metadata saved successfully.")
@@ -115,9 +115,23 @@ def upload_file(request):
     return redirect('dashboard')
 
 
+
 def delete_file(request, file_id):
     try:
+        user_email = request.session.get('user_email')
+        if not user_email:
+            messages.error(request, "You must be logged in to delete files.")
+            return redirect('login')
+
+        # Get the file
         file = get_object_or_404(UploadedFile, id=file_id)
+
+        # ✅ Check if the file belongs to the logged-in user
+        if file.user_email != user_email:
+            messages.error(request, "Unauthorized: You can only delete your own files.")
+            return redirect('dashboard')
+
+        # ✅ Delete file from Supabase and then DB
         bucket = supabase.storage.from_("uploads")
         delete_response = bucket.remove([file.path_in_bucket])
 
@@ -126,11 +140,11 @@ def delete_file(request, file_id):
             messages.success(request, "File deleted successfully.")
         else:
             messages.error(request, f"Failed to delete from Supabase: {delete_response}")
+
     except Exception as e:
         messages.error(request, f"Error deleting file: {str(e)}")
 
     return redirect('dashboard')
-
 
 def download_file(request, file_id):
     uploaded_file = get_object_or_404(UploadedFile, id=file_id)
