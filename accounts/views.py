@@ -1,10 +1,8 @@
-# Standard library
 import os
 import uuid
 import time
 from datetime import datetime
 
-# Third-party
 import requests
 from dotenv import load_dotenv
 from google_auth_oauthlib.flow import Flow
@@ -12,7 +10,6 @@ from google.oauth2 import id_token
 from google.auth.transport import requests as google_requests
 from supabase import create_client
 
-# Django
 from django.conf import settings
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import HttpResponse, JsonResponse, Http404
@@ -20,13 +17,13 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.hashers import make_password, check_password
 from django.contrib.auth import authenticate, login, logout
+from django.http import HttpResponseForbidden
 
-# Local app
+
 from .models import User_Data, UploadedFile
 from .forms import UploadFileForm
 from accounts import views
 
-# Load environment variables
 load_dotenv()
 
 # Supabase config
@@ -40,7 +37,6 @@ supabase = create_client(SUPABASE_URL, SUPABASE_API_KEY)
 os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
 
 
-# --------------------- Views ---------------------
 
 def redirect_if_logged_in(request):
     if request.session.get('user_email'):
@@ -112,7 +108,8 @@ def upload_file(request):
                 title=title,
                 public_url=public_url,
                 path_in_bucket=file_name,
-                user_email=user_email
+                user_email=user_email,
+                user=request.user
             )
 
             messages.success(request, "File uploaded and metadata saved successfully.")
@@ -126,20 +123,16 @@ def upload_file(request):
 
 
 def delete_file(request, file_id):
-    try:
-        file = get_object_or_404(UploadedFile, id=file_id)
-        bucket = supabase.storage.from_("uploads")
-        delete_response = bucket.remove([file.path_in_bucket])
+    file = UploadedFile.objects.get(id=file_id)
+    
+    if file.user != request.user:
+        return HttpResponseForbidden("You are not allowed to delete this file.")
+    
+    supabase.storage.from_("uploads").remove([f"uploads/{file.file_name}"])
 
-        if isinstance(delete_response, list):
-            file.delete()
-            messages.success(request, "File deleted successfully.")
-        else:
-            messages.error(request, f"Failed to delete from Supabase: {delete_response}")
-    except Exception as e:
-        messages.error(request, f"Error deleting file: {str(e)}")
+    file.delete()
+    return redirect("file_list")
 
-    return redirect('dashboard')
 
 
 def download_file(request, file_id):

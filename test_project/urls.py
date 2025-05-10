@@ -12,7 +12,7 @@ urlpatterns = [
     path('signup/submit/', views.signup_submit, name='signup_submit'),
     path('logout/', views.logout_view, name='logout'),
     path('dashboard/', views.dashboard, name='dashboard'),
-    path('delete/<int:file_id>/', views.delete_file, name='delete_file'),
+    path("delete/<int:file_id>/", views.delete_file, name="delete_file"),
 
 
 
