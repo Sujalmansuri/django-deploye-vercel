@@ -7,24 +7,35 @@
     <title>InstaData.com - Home</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="icon" type="image/jpeg" href="{% static 'images/fevicon-ico.jpeg' %}">
-
+    
     <style>
         body {
             padding-top: 80px;
             background-color: #f9f9f9;
+            font-family: 'Inter', sans-serif;
         }
 
         .navbar {
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
         }
 
         .navbar-brand {
             font-weight: bold;
-            font-size: 1.5rem;
-            color: #212529;
+            font-size: 1.6rem;
+            background: linear-gradient(to right, #6610f2, #dc3545);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
 
         .navbar-brand:hover {
+            color: #dc3545;
+        }
+
+        .navbar-nav .nav-link {
+            color: #212529;
+        }
+
+        .navbar-nav .nav-link:hover {
             color: #dc3545;
         }
 
@@ -62,6 +73,10 @@
         .content-section {
             padding: 40px 20px;
             text-align: center;
+            background: linear-gradient(to right, #f8f9fa, #e9ecef);
+            border-radius: 15px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+            margin-top: 20px;
         }
 
         .footer {
@@ -71,8 +86,13 @@
             margin-top: 40px;
         }
 
-        img.logo-icon {
-            width: 20px;
+        .footer a {
+            color: #dc3545;
+            text-decoration: none;
+        }
+
+        .footer a:hover {
+            text-decoration: underline;
         }
 
         .dropdown-menu {
@@ -90,6 +110,24 @@
             .btn-google, .btn-github {
                 margin: 5px 0;
             }
+        }
+
+        .card-custom {
+            border: none;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin: 20px;
+            padding: 30px;
+            background: #fff;
+        }
+
+        .card-custom h5 {
+            font-size: 1.5rem;
+            color: #212529;
+        }
+
+        .card-custom p {
+            color: #6c757d;
         }
     </style>
 </head>
@@ -132,15 +170,27 @@
 </nav>
 
 <!-- Main Content -->
-<div class="content-section">
-    <h1>Welcome to InstaData.com</h1>
-    <p>This website provides real-life datasets for students, researchers, and developers.</p>
-    <p>Enjoy fast, secure, and user-friendly access to datasets — absolutely free!</p>
+<div class="container mt-5">
+    <div class="content-section">
+        <h1 class="display-4">Welcome to InstaData.com</h1>
+        <p class="lead">This website provides real-life datasets for students, researchers, and developers.</p>
+        <p class="mb-4">Enjoy fast, secure, and user-friendly access to datasets — absolutely free!</p>
 
-    <h2>Why Choose Us?</h2>
-    <p>✔️ Fast and Reliable Dataset Access</p>
-    <p>✔️ 100% Secure and Private</p>
-    <p>✔️ Easy-to-Use Interface</p>
+        <h2 class="my-4">Why Choose Us?</h2>
+        <p>✔️ Fast and Reliable Dataset Access</p>
+        <p>✔️ 100% Secure and Private</p>
+        <p>✔️ Easy-to-Use Interface</p>
+
+        <div class="card-custom">
+            <h5 class="card-title">Our Popular Features</h5>
+            <p class="card-text">We offer various datasets that are well-organized and easy to search. Perfect for students and professionals alike!</p>
+        </div>
+
+        <div class="card-custom">
+            <h5 class="card-title">Get Started Today</h5>
+            <p class="card-text">Sign up today and start exploring datasets that can help with your research and projects.</p>
+        </div>
+    </div>
 </div>
 
 <!-- Footer -->
