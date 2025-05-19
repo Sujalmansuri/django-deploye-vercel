@@ -104,7 +104,7 @@ def upload_file(request):
                 user_email=user_email,
             )
 
-            messages.success(request, "File uploaded and metadata saved successfully.")
+            messages.success(request, "File uploaded and saved successfully.")
             return redirect('dashboard')
 
         except Exception as e:
