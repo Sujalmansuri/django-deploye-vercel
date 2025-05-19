@@ -1,7 +1,4 @@
 import os
-import uuid
-import time
-from datetime import datetime
 
 import requests
 from dotenv import load_dotenv
@@ -12,7 +9,7 @@ from supabase import create_client
 
 from django.conf import settings
 from django.shortcuts import render, redirect, get_object_or_404
-from django.http import HttpResponse, JsonResponse, Http404
+from django.http import HttpResponse
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.hashers import make_password, check_password
@@ -37,6 +34,7 @@ def redirect_if_logged_in(request):
     if user_email and User_Data.objects.filter(email=user_email).exists():
         return redirect('dashboard')
     return redirect('login')
+
 
 def home(request):
     return render(request, 'Home.html')
@@ -115,7 +113,6 @@ def upload_file(request):
     return redirect('dashboard')
 
 
-
 def delete_file(request, file_id):
     try:
         user_email = request.session.get('user_email')
@@ -123,15 +120,12 @@ def delete_file(request, file_id):
             messages.error(request, "You must be logged in to delete files.")
             return redirect('login')
 
-        # Get the file
         file = get_object_or_404(UploadedFile, id=file_id)
 
-        # ✅ Check if the file belongs to the logged-in user
         if file.user_email != user_email:
             messages.error(request, "Unauthorized: You can only delete your own files.")
             return redirect('dashboard')
 
-        # ✅ Delete file from Supabase and then DB
         bucket = supabase.storage.from_("uploads")
         delete_response = bucket.remove([file.path_in_bucket])
 
@@ -145,6 +139,7 @@ def delete_file(request, file_id):
         messages.error(request, f"Error deleting file: {str(e)}")
 
     return redirect('dashboard')
+
 
 def download_file(request, file_id):
     uploaded_file = get_object_or_404(UploadedFile, id=file_id)
@@ -192,6 +187,7 @@ def google_callback(request):
     try:
         id_info = id_token.verify_oauth2_token(credentials.id_token, google_requests.Request())
     except ValueError:
+        messages.error(request, 'Google login failed. Please try again.')  # 🚨 Alert Box Added
         return redirect("login_page")
 
     email = id_info.get("email")
@@ -222,10 +218,12 @@ def signup_submit(request):
         confirm_password = request.POST.get('confirm_password')
 
         if password != confirm_password:
-            return render(request, 'signup.html', {'error': 'Passwords do not match!'})
+            messages.error(request, 'Passwords do not match!')  # 🚨 Alert Box Added
+            return redirect('signup_page')
 
         if User_Data.objects.filter(email=email).exists():
-            return render(request, 'signup.html', {'error': 'Email already registered!'})
+            messages.error(request, 'Email already registered!')  # 🚨 Alert Box Added
+            return redirect('signup_page')
 
         user = User_Data.objects.create(
             full_name=full_name,
@@ -236,6 +234,7 @@ def signup_submit(request):
 
         request.session['user_email'] = user.email
         request.session['user_name'] = user.full_name
+        messages.success(request, 'Signup successful! Welcome.')  # 🚨 Alert Box Added
         return redirect('dashboard')
 
     return redirect('signup_page')
@@ -252,11 +251,14 @@ def login_view(request):
             if check_password(password, user.password):
                 request.session['user_email'] = user.email
                 request.session['user_name'] = user.full_name
+                messages.success(request, 'Login successful.')  # 🚨 Alert Box Added
                 return redirect('dashboard')
             else:
-                return render(request, 'login.html', {'error': 'Invalid credentials'})
+                messages.error(request, 'Invalid credentials')  # 🚨 Alert Box Added
+                return redirect('login_page')
         except User_Data.DoesNotExist:
-            return render(request, 'login.html', {'error': 'User does not exist'})
+            messages.error(request, 'User does not exist')  # 🚨 Alert Box Added
+            return redirect('login_page')
 
     return redirect('login_page')
 
@@ -272,11 +274,14 @@ def login_submit(request):
             if check_password(password, user.password):
                 request.session['user_email'] = user.email
                 request.session['user_name'] = user.full_name
+                messages.success(request, 'Login successful.')  # 🚨 Alert Box Added
                 return redirect('dashboard')
             else:
-                return render(request, 'login.html', {'error': 'Invalid credentials'})
+                messages.error(request, 'Invalid credentials')  # 🚨 Alert Box Added
+                return redirect('login_page')
         except User_Data.DoesNotExist:
-            return render(request, 'login.html', {'error': 'User does not exist'})
+            messages.error(request, 'User does not exist')  # 🚨 Alert Box Added
+            return redirect('login_page')
 
     return redirect('login_page')
 
