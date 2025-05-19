@@ -17,6 +17,7 @@ from django.contrib.auth import authenticate, login, logout
 from .models import User_Data, UploadedFile
 from .forms import UploadFileForm
 from accounts import views
+
 load_dotenv()
 
 # Supabase config
@@ -75,12 +76,12 @@ def upload_file(request):
     if request.method == 'POST':
         user_email = request.session.get('user_email')
         if not user_email:
-            messages.error(request, "User not logged in.")
+            messages.info(request, "User not logged in.")
             return redirect('login')
 
         form = UploadFileForm(request.POST, request.FILES)
         if not form.is_valid():
-            messages.error(request, "Invalid form submission.")
+            messages.info(request, "Invalid form submission.")
             return redirect('dashboard')
 
         file = request.FILES['file']
@@ -91,7 +92,7 @@ def upload_file(request):
         try:
             upload_response = supabase.storage.from_(supabase_bucket).upload(file_name, file.read())
             if getattr(upload_response, 'error', None):
-                messages.error(request, f"Upload failed: {upload_response.error.message}")
+                messages.info(request, f"Upload failed: {upload_response.error.message}")
                 return redirect('dashboard')
 
             public_url = supabase.storage.from_(supabase_bucket).get_public_url(file_name)
@@ -107,7 +108,7 @@ def upload_file(request):
             return redirect('dashboard')
 
         except Exception as e:
-            messages.error(request, f"Upload error: {str(e)}")
+            messages.info(request, f"Upload error: {str(e)}")
             return redirect('dashboard')
 
     return redirect('dashboard')
@@ -117,13 +118,13 @@ def delete_file(request, file_id):
     try:
         user_email = request.session.get('user_email')
         if not user_email:
-            messages.error(request, "You must be logged in to delete files.")
+            messages.info(request, "You must be logged in to delete files.")
             return redirect('login')
 
         file = get_object_or_404(UploadedFile, id=file_id)
 
         if file.user_email != user_email:
-            messages.error(request, "Unauthorized: You can only delete your own files.")
+            messages.info(request, "Unauthorized: You can only delete your own files.")
             return redirect('dashboard')
 
         bucket = supabase.storage.from_("uploads")
@@ -133,10 +134,10 @@ def delete_file(request, file_id):
             file.delete()
             messages.success(request, "File deleted successfully.")
         else:
-            messages.error(request, f"Failed to delete from Supabase: {delete_response}")
+            messages.info(request, f"Failed to delete from Supabase: {delete_response}")
 
     except Exception as e:
-        messages.error(request, f"Error deleting file: {str(e)}")
+        messages.info(request, f"Error deleting file: {str(e)}")
 
     return redirect('dashboard')
 
@@ -187,7 +188,6 @@ def google_callback(request):
     try:
         id_info = id_token.verify_oauth2_token(credentials.id_token, google_requests.Request())
     except ValueError:
-        messages.error(request, 'Google login failed. Please try again.')  # 🚨 Alert Box Added
         return redirect("login_page")
 
     email = id_info.get("email")
@@ -218,12 +218,10 @@ def signup_submit(request):
         confirm_password = request.POST.get('confirm_password')
 
         if password != confirm_password:
-            messages.error(request, 'Passwords do not match!')  # 🚨 Alert Box Added
-            return redirect('signup_page')
+            return render(request, 'signup.html', {'error': 'Passwords do not match!'})
 
         if User_Data.objects.filter(email=email).exists():
-            messages.error(request, 'Email already registered!')  # 🚨 Alert Box Added
-            return redirect('signup_page')
+            return render(request, 'signup.html', {'error': 'Email already registered!'})
 
         user = User_Data.objects.create(
             full_name=full_name,
@@ -234,7 +232,6 @@ def signup_submit(request):
 
         request.session['user_email'] = user.email
         request.session['user_name'] = user.full_name
-        messages.success(request, 'Signup successful! Welcome.')  # 🚨 Alert Box Added
         return redirect('dashboard')
 
     return redirect('signup_page')
@@ -251,14 +248,11 @@ def login_view(request):
             if check_password(password, user.password):
                 request.session['user_email'] = user.email
                 request.session['user_name'] = user.full_name
-                messages.success(request, 'Login successful.')  # 🚨 Alert Box Added
                 return redirect('dashboard')
             else:
-                messages.error(request, 'Invalid credentials')  # 🚨 Alert Box Added
-                return redirect('login_page')
+                return render(request, 'login.html', {'error': 'Invalid credentials'})
         except User_Data.DoesNotExist:
-            messages.error(request, 'User does not exist')  # 🚨 Alert Box Added
-            return redirect('login_page')
+            return render(request, 'login.html', {'error': 'User does not exist'})
 
     return redirect('login_page')
 
@@ -274,14 +268,11 @@ def login_submit(request):
             if check_password(password, user.password):
                 request.session['user_email'] = user.email
                 request.session['user_name'] = user.full_name
-                messages.success(request, 'Login successful.')  # 🚨 Alert Box Added
                 return redirect('dashboard')
             else:
-                messages.error(request, 'Invalid credentials')  # 🚨 Alert Box Added
-                return redirect('login_page')
+                return render(request, 'login.html', {'error': 'Invalid credentials'})
         except User_Data.DoesNotExist:
-            messages.error(request, 'User does not exist')  # 🚨 Alert Box Added
-            return redirect('login_page')
+            return render(request, 'login.html', {'error': 'User does not exist'})
 
     return redirect('login_page')
 
