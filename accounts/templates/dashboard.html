@@ -121,6 +121,19 @@
       <li><small class="text-muted">No new notifications</small></li>
     {% endfor %}
   </ul>
+   <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
+            {% if request.session.user_email %}
+                <!-- Logged-in User Dropdown -->
+                <div class="dropdown">
+                    <button class="btn btn-outline-secondary dropdown-toggle d-flex align-items-center" id="userDropdown" data-bs-toggle="dropdown">
+                        <img src="{{ request.session.user_picture }}" alt="Profile" class="profile-pic me-2" />
+                        {{ request.session.user_name }}
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" href="#">Profile</a></li>
+                        <li><a class="dropdown-item" href="{% url 'logout' %}">Logout</a></li>
+                    </ul>
+                </div>
 </li>
 
 
@@ -174,9 +187,6 @@
                     <input type="email" class="form-control" name="user_email" value="{{ user_email }}" readonly>
                 </div>
 
-                <div class="alert alert-warning" role="alert">
-                    📧 <strong>Note:</strong> Uploading a file will send email notifications to all registered students.
-                </div>
                 <div class="col-md-4">
     <label>Notify Emails</label>
     <input type="text" class="form-control" name="notify_emails" placeholder="example1@gmail.com, example2@gmail.com">
