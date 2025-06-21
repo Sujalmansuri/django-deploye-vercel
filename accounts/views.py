@@ -154,7 +154,6 @@ def upload_file(request):
 
         file = request.FILES['file']
         title = request.POST.get('title') or file.name
-        notify_emails = request.POST.get('notify_emails', '')
         file_name = file.name
         supabase_bucket = "uploads"
 
@@ -167,8 +166,7 @@ def upload_file(request):
 
             public_url = supabase.storage.from_(supabase_bucket).get_public_url(file_name)
 
-            # Save uploaded file entry
-            # Inside upload_file view
+            # Save uploaded file record
             uploaded_file_instance = UploadedFile.objects.create(
                 title=title,
                 public_url=public_url,
@@ -176,41 +174,41 @@ def upload_file(request):
                 user_email=user_email,
             )
 
+            # ✉️ Send notifications to selected users
+            notify_emails = request.POST.get('notify_emails', '')
+            notify_email_list = [email.strip() for email in notify_emails.split(',') if email.strip()]
 
-            # Notify specific users
-            email_list = [email.strip() for email in notify_emails.split(',') if email.strip()]
-            subject = f"📥 New File Uploaded: {title}"
-            message = (
-                f"Hello,\n\nA new file titled '{title}' has been uploaded by {user_email}.\n\n"
-                f"Access it here: {public_url}\n\n"
-                f"Regards,\nInstaDataCom Team"
-            )
+            notifications = []
+            email_messages = []
 
-            for email in email_list:
-                # Store notification
-                from .models import Notification
-                
-                # 🔔 Notification to uploader
-                Notification.objects.create(
-                    user_email=user_email,
-                    file=uploaded_file_instance,
-                    title="File Uploaded",
-                    message=f"The file '{title}' has been uploaded successfully."
-                )
-
-    
-
-                # Send email
+            for email in notify_email_list:
                 try:
-                    send_mail(
-                        subject,
-                        message,
-                        settings.DEFAULT_FROM_EMAIL,
-                        [email],
-                        fail_silently=True,
-                    )
-                except Exception as e:
-                    print(f"Email send error for {email}: {e}")
+                    user_obj = User_Data.objects.get(email=email)
+                except User_Data.DoesNotExist:
+                    continue  # skip if user not found
+
+                # Create in-app notification
+                message = f"A new file titled '{title}' has been uploaded by {user_email}."
+                notifications.append(Notification(
+                    user=user_obj,
+                    file=uploaded_file_instance,
+                    message=message
+                ))
+
+                # Prepare email notification
+                subject = f"📥 New File Uploaded: {title}"
+                email_body = (
+                    f"Hello,\n\nA new file titled '{title}' has been uploaded by {user_email}.\n\n"
+                    f"🔗 View/Download: {public_url}\n\n"
+                    f"Regards,\nInstaData Team"
+                )
+                email_messages.append((subject, email_body, settings.DEFAULT_FROM_EMAIL, [email]))
+
+            if notifications:
+                Notification.objects.bulk_create(notifications)
+
+            if email_messages:
+                send_mass_mail(email_messages, fail_silently=True)
 
             messages.success(request, "File uploaded and notifications sent.")
             return redirect('dashboard')
@@ -220,31 +218,36 @@ def upload_file(request):
             return redirect('dashboard')
 
     return redirect('dashboard')
-
+from .models import Notification
 
 def dashboard(request):
     user_email = request.session.get('user_email')
     if not user_email:
         return redirect('home')
 
+    user_name = request.session.get('user_name', 'Guest')
+
     query = request.GET.get('q', '')
-    files = UploadedFile.objects.all().order_by('-uploaded_at')
+    files = UploadedFile.objects.filter(title__icontains=query) if query else UploadedFile.objects.all()
+    files = files.order_by('-uploaded_at')
+
     form = UploadFileForm()
 
-    if query:
-        files = UploadedFile.objects.filter(title__icontains=query).order_by('-uploaded_at')
-
-    # Fetch unread notifications for current user
-    notifications = Notification.objects.filter(recipient_email=user_email, is_read=False).order_by('-created_at')
+    try:
+        user_obj = User_Data.objects.get(email=user_email)
+        unread_notifications = Notification.objects.filter(user=user_obj, is_read=False).order_by('-created_at')
+    except User_Data.DoesNotExist:
+        unread_notifications = []
 
     return render(request, 'dashboard.html', {
         'form': form,
         'files': files,
         'query': query,
         'user_email': user_email,
-        'notifications': notifications
+        'user_name': user_name,
+        'unread_notifications': unread_notifications,
+        'unread_notifications_count': unread_notifications.count(),
     })
-
 def delete_file(request, file_id):
     try:
         user_email = request.session.get('user_email')
