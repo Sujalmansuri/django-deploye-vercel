@@ -121,13 +121,33 @@
 {% if messages %}
   <div class="container mt-4">
     {% for message in messages %}
+      <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show" role="alert">
+        {% if message.tags == 'success' %}
+          <strong>✅ Success:</strong>
+        {% elif message.tags == 'error' %}
+          <strong>❌ Error:</strong>
+        {% elif message.tags == 'warning' %}
+          <strong>⚠️ Warning:</strong>
+        {% else %}
+          <strong>ℹ️ Info:</strong>
+        {% endif %}
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+    {% endfor %}
+  </div>
+{% endif %}
+
+{% comment %} {% if messages %}
+  <div class="container mt-4">
+    {% for message in messages %}
       <div class="alert alert-info alert-dismissible fade show" role="alert">
         <strong>Info:</strong> {{ message }}
         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
       </div>
     {% endfor %}
   </div>
-{% endif %}
+{% endif %} {% endcomment %}
 
 <div class="container mt-4">
     <div class="mb-4">
@@ -151,6 +171,10 @@
                     <label>Email</label>
                     <input type="email" class="form-control" name="user_email" value="{{ user_email }}" readonly>
                 </div>
+                <div class="alert alert-warning" role="alert">
+                    📧 <strong>Note:</strong> Uploading a file will send email notifications to all registered students.
+                </div>
+
             </div>
             <button type="submit" class="btn btn-primary mt-3">Upload</button>
         </form>

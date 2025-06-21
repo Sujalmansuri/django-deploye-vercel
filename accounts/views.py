@@ -107,6 +107,28 @@ def upload_file(request):
             messages.success(request, "File uploaded and saved successfully.")
             return redirect('dashboard')
 
+             # 🔔 Email Notification Logic
+            # Get all user emails except the uploader
+            from .models import User_Data
+            recipients = User_Data.objects.exclude(email=user_email).values_list('email', flat=True)
+
+            subject = f"📥 New File Uploaded: {title}"
+            message = (
+                f"Hello,\n\nA new file titled **{title}** has been uploaded by {user_email}.\n\n"
+                f"View or download it here: {public_url}\n\n"
+                f"Regards,\nInstaDataCom Team"
+            )
+
+            messages_to_send = [
+                (subject, message, settings.DEFAULT_FROM_EMAIL, [email]) for email in recipients
+            ]
+
+            send_mass_mail(messages_to_send, fail_silently=False)
+
+            messages.success(request, "File uploaded and students notified via email.")
+            return redirect('dashboard')
+
+
         except Exception as e:
             messages.info(request, f"Upload error: {str(e)}")
             return redirect('dashboard')
