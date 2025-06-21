@@ -27,8 +27,9 @@ class CustomUser(models.Model):
 
 
 class Notification(models.Model):
-    recipient_email = models.EmailField()
+    user = models.ForeignKey(User_Data, on_delete=models.CASCADE)  # user who receives the notification
+    file = models.ForeignKey(UploadedFile, on_delete=models.CASCADE)
     message = models.TextField()
-    file = models.ForeignKey('UploadedFile', on_delete=models.CASCADE)
-    is_read = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
+    is_read = models.BooleanField(default=False)
+
