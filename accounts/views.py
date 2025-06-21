@@ -186,10 +186,13 @@ def upload_file(request):
 
             for email in email_list:
                 # Store notification
+                from .models import Notification
                 Notification.objects.create(
-                    recipient_email=email,
-                    message=f"{user_email} uploaded a new file: {title}",
+                    recipient_email=email.strip(),
+                    message=f"📁 New file uploaded: {title}",
+                    file=uploaded_file_instance
                 )
+    
 
                 # Send email
                 try:
@@ -264,17 +267,48 @@ def delete_file(request, file_id):
     return redirect('dashboard')
 
 
+# def download_file(request, file_id):
+#     uploaded_file = get_object_or_404(UploadedFile, id=file_id)
+#     file_url = uploaded_file.public_url
+
+#     try:
+#         response = requests.get(file_url, stream=True)
+#         response.raise_for_status()
+#         filename = uploaded_file.path_in_bucket
+#         django_response = HttpResponse(response.raw, content_type=response.headers.get('Content-Type', 'application/octet-stream'))
+#         django_response['Content-Disposition'] = f'attachment; filename="{filename}"'
+#         return django_response
+#     except requests.RequestException:
+#         return HttpResponse("Error fetching file.", status=500)
+
+from .models import Notification
+
 def download_file(request, file_id):
     uploaded_file = get_object_or_404(UploadedFile, id=file_id)
     file_url = uploaded_file.public_url
 
     try:
+        # ✅ Mark any unread notifications related to this file as read for the current user
+        user_email = request.session.get('user_email')
+        if user_email:
+            Notification.objects.filter(
+                recipient_email=user_email,
+                file=uploaded_file,
+                is_read=False
+            ).update(is_read=True)
+
+        # Proceed to download file from Supabase
         response = requests.get(file_url, stream=True)
         response.raise_for_status()
         filename = uploaded_file.path_in_bucket
-        django_response = HttpResponse(response.raw, content_type=response.headers.get('Content-Type', 'application/octet-stream'))
+
+        django_response = HttpResponse(
+            response.raw,
+            content_type=response.headers.get('Content-Type', 'application/octet-stream')
+        )
         django_response['Content-Disposition'] = f'attachment; filename="{filename}"'
         return django_response
+
     except requests.RequestException:
         return HttpResponse("Error fetching file.", status=500)
 

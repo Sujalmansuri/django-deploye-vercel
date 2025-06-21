@@ -25,8 +25,10 @@ class CustomUser(models.Model):
     name = models.CharField(max_length=255, blank=True, null=True)
     github_id = models.CharField(max_length=255, blank=True, null=True)
 
+
 class Notification(models.Model):
     recipient_email = models.EmailField()
     message = models.TextField()
-    created_at = models.DateTimeField(auto_now_add=True)
+    file = models.ForeignKey('UploadedFile', on_delete=models.CASCADE)
     is_read = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
