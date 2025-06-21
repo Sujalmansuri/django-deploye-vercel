@@ -168,12 +168,14 @@ def upload_file(request):
             public_url = supabase.storage.from_(supabase_bucket).get_public_url(file_name)
 
             # Save uploaded file entry
-            UploadedFile.objects.create(
+            # Inside upload_file view
+            uploaded_file_instance = UploadedFile.objects.create(
                 title=title,
                 public_url=public_url,
                 path_in_bucket=file_name,
                 user_email=user_email,
             )
+
 
             # Notify specific users
             email_list = [email.strip() for email in notify_emails.split(',') if email.strip()]
@@ -187,11 +189,15 @@ def upload_file(request):
             for email in email_list:
                 # Store notification
                 from .models import Notification
+                
+                # 🔔 Notification to uploader
                 Notification.objects.create(
-                    recipient_email=email.strip(),
-                    message=f"📁 New file uploaded: {title}",
-                    file=uploaded_file_instance
+                    user_email=user_email,
+                    file=uploaded_file_instance,
+                    title="File Uploaded",
+                    message=f"The file '{title}' has been uploaded successfully."
                 )
+
     
 
                 # Send email
