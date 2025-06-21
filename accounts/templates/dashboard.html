@@ -152,6 +152,20 @@
 <div class="container mt-4">
     <div class="mb-4">
         <h2 class="fw-bold">Welcome, {{ request.session.user_name|default:"Guest" }}</h2>
+        {% if notifications %}
+    <div class="glass-card mb-4">
+        <h5>🔔 Notifications</h5>
+        <ul class="list-group">
+            {% for note in notifications %}
+                <li class="list-group-item d-flex justify-content-between">
+                    <span>{{ note.message }}</span>
+                    <small class="text-muted">{{ note.created_at|date:"M d, H:i" }}</small>
+                </li>
+            {% endfor %}
+        </ul>
+    </div>
+{% endif %}
+
     </div>
 
     <div class="glass-card mb-4">
@@ -171,9 +185,15 @@
                     <label>Email</label>
                     <input type="email" class="form-control" name="user_email" value="{{ user_email }}" readonly>
                 </div>
+
                 <div class="alert alert-warning" role="alert">
                     📧 <strong>Note:</strong> Uploading a file will send email notifications to all registered students.
                 </div>
+                <div class="col-md-4">
+    <label>Notify Emails</label>
+    <input type="text" class="form-control" name="notify_emails" placeholder="example1@gmail.com, example2@gmail.com">
+</div>
+
 
             </div>
             <button type="submit" class="btn btn-primary mt-3">Upload</button>

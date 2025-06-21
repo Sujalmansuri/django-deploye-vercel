@@ -24,3 +24,9 @@ class CustomUser(models.Model):
     email = models.EmailField(unique=True)
     name = models.CharField(max_length=255, blank=True, null=True)
     github_id = models.CharField(max_length=255, blank=True, null=True)
+
+class Notification(models.Model):
+    recipient_email = models.EmailField()
+    message = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    is_read = models.BooleanField(default=False)
