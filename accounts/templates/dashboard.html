@@ -92,7 +92,7 @@
                 <button class="btn btn-outline-secondary btn-sm" type="submit">Search</button>
             </form>
 
-            <ul class="navbar-nav align-items-center">
+            {% comment %} <ul class="navbar-nav align-items-center">
                 {% if request.session.user_email %}
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
@@ -112,7 +112,55 @@
                         </a>
                     </li>
                 {% endif %}
-            </ul>
+            </ul> {% endcomment %}
+            <ul class="navbar-nav align-items-center">
+
+  <!-- 🔔 Notification Bell -->
+  {% if notifications %}
+    <li class="nav-item dropdown me-3">
+      <a class="nav-link position-relative" href="#" id="notificationDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+        <i class="bi bi-bell fs-5"></i>
+        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+          {{ notifications|length }}
+        </span>
+      </a>
+      <ul class="dropdown-menu dropdown-menu-end p-2" style="width: 300px;" aria-labelledby="notificationDropdown">
+        {% for note in notifications %}
+          <li class="mb-2">
+            <div class="card shadow-sm p-2 small">
+              <div class="card-body p-2">
+                <p class="mb-1">{{ note.message }}</p>
+                <small class="text-muted">{{ note.created_at|timesince }} ago</small>
+              </div>
+            </div>
+          </li>
+        {% endfor %}
+      </ul>
+    </li>
+  {% endif %}
+
+  <!-- 👤 Profile -->
+  {% if request.session.user_email %}
+    <li class="nav-item dropdown">
+      <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+        <img src="{{ request.session.user_picture }}" alt="Profile" class="profile-pic me-2">
+        {{ request.session.user_name }}
+      </a>
+      <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+        <li><a class="dropdown-item" href="#">Profile</a></li>
+        <li><a class="dropdown-item" href="{% url 'logout' %}">Logout</a></li>
+      </ul>
+    </li>
+  {% else %}
+    <li class="nav-item">
+      <a href="{% url 'google_login' %}" class="btn btn-google me-2">
+        <img src="{% static 'images/google-logo.png' %}" alt="Google" width="18">
+        Google Login
+      </a>
+    </li>
+  {% endif %}
+</ul>
+
         </div>
     </div>
 </nav>
@@ -138,34 +186,11 @@
   </div>
 {% endif %}
 
-{% comment %} {% if messages %}
-  <div class="container mt-4">
-    {% for message in messages %}
-      <div class="alert alert-info alert-dismissible fade show" role="alert">
-        <strong>Info:</strong> {{ message }}
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-      </div>
-    {% endfor %}
-  </div>
-{% endif %} {% endcomment %}
+
 
 <div class="container mt-4">
     <div class="mb-4">
         <h2 class="fw-bold">Welcome, {{ request.session.user_name|default:"Guest" }}</h2>
-        {% if notifications %}
-    <div class="glass-card mb-4">
-        <h5>🔔 Notifications</h5>
-        <ul class="list-group">
-            {% for note in notifications %}
-                <li class="list-group-item d-flex justify-content-between">
-                    <span>{{ note.message }}</span>
-                    <small class="text-muted">{{ note.created_at|date:"M d, H:i" }}</small>
-                </li>
-            {% endfor %}
-        </ul>
-    </div>
-{% endif %}
-
     </div>
 
     <div class="glass-card mb-4">
