@@ -139,7 +139,7 @@ from django.core.mail import send_mail
 from .models import UploadedFile, User_Data, Notification
 from .forms import UploadFileForm
 from django.conf import settings
-
+from django.core.mail import send_mass_mail
 def upload_file(request):
     if request.method == 'POST':
         user_email = request.session.get('user_email')
