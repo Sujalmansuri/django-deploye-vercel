@@ -292,21 +292,59 @@ def delete_file(request, file_id):
 
 from .models import Notification
 
+# def download_file(request, file_id):
+#     uploaded_file = get_object_or_404(UploadedFile, id=file_id)
+#     file_url = uploaded_file.public_url
+
+#     try:
+#         # ✅ Mark any unread notifications related to this file as read for the current user
+#         user_email = request.session.get('user_email')
+#         if user_email:
+#             Notification.objects.filter(
+#                 recipient_email=user_email,
+#                 file=uploaded_file,
+#                 is_read=False
+#             ).update(is_read=True)
+
+#         # Proceed to download file from Supabase
+#         response = requests.get(file_url, stream=True)
+#         response.raise_for_status()
+#         filename = uploaded_file.path_in_bucket
+
+#         django_response = HttpResponse(
+#             response.raw,
+#             content_type=response.headers.get('Content-Type', 'application/octet-stream')
+#         )
+#         django_response['Content-Disposition'] = f'attachment; filename="{filename}"'
+#         return django_response
+
+#     except requests.RequestException:
+#         return HttpResponse("Error fetching file.", status=500)
+
+from django.shortcuts import get_object_or_404
+from django.http import HttpResponse
+from .models import UploadedFile, Notification, User_Data
+import requests
+
 def download_file(request, file_id):
     uploaded_file = get_object_or_404(UploadedFile, id=file_id)
     file_url = uploaded_file.public_url
 
     try:
-        # ✅ Mark any unread notifications related to this file as read for the current user
+        # ✅ Mark notifications as read for the current user
         user_email = request.session.get('user_email')
         if user_email:
-            Notification.objects.filter(
-                recipient_email=user_email,
-                file=uploaded_file,
-                is_read=False
-            ).update(is_read=True)
+            try:
+                user_obj = User_Data.objects.get(email=user_email)
+                Notification.objects.filter(
+                    user=user_obj,
+                    file=uploaded_file,
+                    is_read=False
+                ).update(is_read=True)
+            except User_Data.DoesNotExist:
+                pass  # Ignore if user not found
 
-        # Proceed to download file from Supabase
+        # ⬇️ Download file from Supabase
         response = requests.get(file_url, stream=True)
         response.raise_for_status()
         filename = uploaded_file.path_in_bucket
@@ -320,7 +358,6 @@ def download_file(request, file_id):
 
     except requests.RequestException:
         return HttpResponse("Error fetching file.", status=500)
-
 
 def google_login(request):
     flow = Flow.from_client_config(
