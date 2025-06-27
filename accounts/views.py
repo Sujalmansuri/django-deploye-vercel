@@ -234,10 +234,11 @@ def dashboard(request):
     form = UploadFileForm()
 
     try:
-        user_obj = User_Data.objects.get(email=user_email)
-        unread_notifications = Notification.objects.filter(user=user_obj, is_read=False).order_by('-created_at')
+        user= User_Data.objects.get(email=user_email)
+        unread_notifications = Notification.objects.filter(user=user, is_read=False).order_by('-created_at')
+        unread_count = unread_notifications.count()
     except User_Data.DoesNotExist:
-        unread_notifications = []
+        pass
 
     return render(request, 'dashboard.html', {
         'form': form,
@@ -246,7 +247,7 @@ def dashboard(request):
         'user_email': user_email,
         'user_name': user_name,
         'unread_notifications': unread_notifications,
-        'unread_notifications_count': unread_notifications.count(),
+        'unread_notifications_count': unread_count,
     })
 def delete_file(request, file_id):
     try:
@@ -326,12 +327,17 @@ from django.http import HttpResponse
 from .models import UploadedFile, Notification, User_Data
 import requests
 
+from django.shortcuts import get_object_or_404
+from django.http import HttpResponse
+from .models import UploadedFile, Notification, User_Data
+import requests
+
 def download_file(request, file_id):
     uploaded_file = get_object_or_404(UploadedFile, id=file_id)
     file_url = uploaded_file.public_url
 
     try:
-        # ✅ Mark notifications as read for the current user
+        # ✅ Mark only the matching notifications as read
         user_email = request.session.get('user_email')
         if user_email:
             try:
@@ -342,9 +348,9 @@ def download_file(request, file_id):
                     is_read=False
                 ).update(is_read=True)
             except User_Data.DoesNotExist:
-                pass  # Ignore if user not found
+                pass  # skip marking read if user doesn't exist
 
-        # ⬇️ Download file from Supabase
+        # ✅ Download the file from Supabase public URL
         response = requests.get(file_url, stream=True)
         response.raise_for_status()
         filename = uploaded_file.path_in_bucket
@@ -358,6 +364,7 @@ def download_file(request, file_id):
 
     except requests.RequestException:
         return HttpResponse("Error fetching file.", status=500)
+
 
 def google_login(request):
     flow = Flow.from_client_config(
