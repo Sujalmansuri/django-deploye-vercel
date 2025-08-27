@@ -49,92 +49,6 @@ def signup_page(request):
     return render(request, 'signup.html')
 
 
-# def dashboard(request):
-#     user_email = request.session.get('user_email')
-#     if not user_email:
-#         return redirect('home')
-
-#     query = request.GET.get('q', '')
-#     files = UploadedFile.objects.all().order_by('-uploaded_at')
-
-#     form = UploadFileForm()
-
-#     if query:
-#         files = UploadedFile.objects.filter(title__icontains=query).order_by('-uploaded_at')
-#     else:
-#         files = UploadedFile.objects.all().order_by('-uploaded_at')
-
-#     return render(request, 'dashboard.html', {
-#         'form': form,
-#         'files': files,
-#         'query': query,
-#         'user_email': user_email
-#     })
-
-
-# def upload_file(request):
-#     if request.method == 'POST':
-#         user_email = request.session.get('user_email')
-#         if not user_email:
-#             messages.info(request, "User not logged in.")
-#             return redirect('login')
-
-#         form = UploadFileForm(request.POST, request.FILES)
-#         if not form.is_valid():
-#             messages.info(request, "Invalid form submission.")
-#             return redirect('dashboard')
-
-#         file = request.FILES['file']
-#         title = request.POST.get('title') or file.name
-#         file_name = file.name
-#         supabase_bucket = "uploads"
-
-#         try:
-#             upload_response = supabase.storage.from_(supabase_bucket).upload(file_name, file.read())
-#             if getattr(upload_response, 'error', None):
-#                 messages.info(request, f"Upload failed: {upload_response.error.message}")
-#                 return redirect('dashboard')
-
-#             public_url = supabase.storage.from_(supabase_bucket).get_public_url(file_name)
-
-#             UploadedFile.objects.create(
-#                 title=title,
-#                 public_url=public_url,
-#                 path_in_bucket=file_name,
-#                 user_email=user_email,
-#             )
-
-#             messages.success(request, "File uploaded and saved successfully.")
-#             return redirect('dashboard')
-
-#              # 🔔 Email Notification Logic
-#             # Get all user emails except the uploader
-#             from .models import User_Data
-#             recipients = User_Data.objects.exclude(email=user_email).values_list('email', flat=True)
-
-#             subject = f"📥 New File Uploaded: {title}"
-#             message = (
-#                 f"Hello,\n\nA new file titled **{title}** has been uploaded by {user_email}.\n\n"
-#                 f"View or download it here: {public_url}\n\n"
-#                 f"Regards,\nInstaDataCom Team"
-#             )
-
-#             messages_to_send = [
-#                 (subject, message, settings.DEFAULT_FROM_EMAIL, [email]) for email in recipients
-#             ]
-
-#             send_mass_mail(messages_to_send, fail_silently=False)
-
-#             messages.success(request, "File uploaded and students notified via email.")
-#             return redirect('dashboard')
-
-
-#         except Exception as e:
-#             messages.info(request, f"Upload error: {str(e)}")
-#             return redirect('dashboard')
-
-#     return redirect('dashboard')
-
 from django.core.mail import send_mail
 from .models import UploadedFile, User_Data, Notification
 from .forms import UploadFileForm
@@ -156,9 +70,9 @@ def upload_file(request):
         title = request.POST.get('title') or file.name
         file_name = file.name
         supabase_bucket = "uploads"
-
+        
         try:
-            # Upload to Supabase
+            
             upload_response = supabase.storage.from_(supabase_bucket).upload(file_name, file.read())
             if getattr(upload_response, 'error', None):
                 messages.info(request, f"Upload failed: {upload_response.error.message}")
@@ -166,15 +80,33 @@ def upload_file(request):
 
             public_url = supabase.storage.from_(supabase_bucket).get_public_url(file_name)
 
-            # Save uploaded file record
+           
             uploaded_file_instance = UploadedFile.objects.create(
                 title=title,
                 public_url=public_url,
                 path_in_bucket=file_name,
                 user_email=user_email,
             )
+             # ✅ Check if file is CSV
+            if file_name.endswith('.csv'):
+                # Read file content from the uploaded file (in memory)
+                file.seek(0)  # Reset pointer
+                csv_data = file.read().decode('utf-8')
+                df = pd.read_csv(StringIO(csv_data))
 
-            # ✉️ Send notifications to selected users
+                # Store summary in session for the next view
+                request.session['csv_summary'] = {
+                    "rows": df.shape[0],
+                    "columns": df.shape[1],
+                    "columns_list": list(df.columns),
+                    "describe": df.describe().to_html(classes='table table-bordered'),
+                }
+                request.session['csv_file_name'] = file_name
+                request.session['csv_preview'] = df.head(10).to_html(classes='table table-striped')
+
+                return redirect('csv_analysis')
+
+            
             notify_emails = request.POST.get('notify_emails', '')
             notify_email_list = [email.strip() for email in notify_emails.split(',') if email.strip()]
 
@@ -185,9 +117,9 @@ def upload_file(request):
                 try:
                     user_obj = User_Data.objects.get(email=email)
                 except User_Data.DoesNotExist:
-                    continue  # skip if user not found
+                    continue  
 
-                # Create in-app notification
+               
                 message = f"A new file titled '{title}' has been uploaded by {user_email}."
                 notifications.append(Notification(
                     user=user_obj,
@@ -195,11 +127,11 @@ def upload_file(request):
                     message=message
                 ))
 
-                # Prepare email notification
-                subject = f"📥 New File Uploaded: {title}"
+                
+                subject = f"New File Uploaded: {title}"
                 email_body = (
                     f"Hello,\n\nA new file titled '{title}' has been uploaded by {user_email}.\n\n"
-                    f"🔗 View/Download: {public_url}\n\n"
+                    f"View/Download: {public_url}\n\n"
                     f"Regards,\nInstaData Team"
                 )
                 email_messages.append((subject, email_body, settings.DEFAULT_FROM_EMAIL, [email]))
@@ -218,6 +150,22 @@ def upload_file(request):
             return redirect('dashboard')
 
     return redirect('dashboard')
+
+def csv_analysis(request):
+    csv_summary = request.session.get('csv_summary')
+    csv_preview = request.session.get('csv_preview')
+    file_name = request.session.get('csv_file_name')
+
+    if not csv_summary:
+        messages.error(request, "No CSV file data found.")
+        return redirect('dashboard')
+
+    return render(request, 'csv_analysis.html', {
+        'summary': csv_summary,
+        'preview': csv_preview,
+        'file_name': file_name
+    })
+
 from .models import Notification
 
 def dashboard(request):
@@ -277,51 +225,7 @@ def delete_file(request, file_id):
     return redirect('dashboard')
 
 
-# def download_file(request, file_id):
-#     uploaded_file = get_object_or_404(UploadedFile, id=file_id)
-#     file_url = uploaded_file.public_url
-
-#     try:
-#         response = requests.get(file_url, stream=True)
-#         response.raise_for_status()
-#         filename = uploaded_file.path_in_bucket
-#         django_response = HttpResponse(response.raw, content_type=response.headers.get('Content-Type', 'application/octet-stream'))
-#         django_response['Content-Disposition'] = f'attachment; filename="{filename}"'
-#         return django_response
-#     except requests.RequestException:
-#         return HttpResponse("Error fetching file.", status=500)
-
 from .models import Notification
-
-# def download_file(request, file_id):
-#     uploaded_file = get_object_or_404(UploadedFile, id=file_id)
-#     file_url = uploaded_file.public_url
-
-#     try:
-#         # ✅ Mark any unread notifications related to this file as read for the current user
-#         user_email = request.session.get('user_email')
-#         if user_email:
-#             Notification.objects.filter(
-#                 recipient_email=user_email,
-#                 file=uploaded_file,
-#                 is_read=False
-#             ).update(is_read=True)
-
-#         # Proceed to download file from Supabase
-#         response = requests.get(file_url, stream=True)
-#         response.raise_for_status()
-#         filename = uploaded_file.path_in_bucket
-
-#         django_response = HttpResponse(
-#             response.raw,
-#             content_type=response.headers.get('Content-Type', 'application/octet-stream')
-#         )
-#         django_response['Content-Disposition'] = f'attachment; filename="{filename}"'
-#         return django_response
-
-#     except requests.RequestException:
-#         return HttpResponse("Error fetching file.", status=500)
-
 from django.shortcuts import get_object_or_404
 from django.http import HttpResponse
 from .models import UploadedFile, Notification, User_Data
@@ -337,7 +241,7 @@ def download_file(request, file_id):
     file_url = uploaded_file.public_url
 
     try:
-        # ✅ Mark only the matching notifications as read
+        
         user_email = request.session.get('user_email')
         if user_email:
             try:
@@ -348,9 +252,9 @@ def download_file(request, file_id):
                     is_read=False
                 ).update(is_read=True)
             except User_Data.DoesNotExist:
-                pass  # skip marking read if user doesn't exist
+                pass  
 
-        # ✅ Download the file from Supabase public URL
+        
         response = requests.get(file_url, stream=True)
         response.raise_for_status()
         filename = uploaded_file.path_in_bucket
