@@ -1,3 +1,4 @@
+from io import StringIO
 import os
 
 import requests
@@ -89,6 +90,7 @@ def upload_file(request):
             )
              # ✅ Check if file is CSV
             if file_name.endswith('.csv'):
+                import pandas as pd
                 # Read file content from the uploaded file (in memory)
                 file.seek(0)  # Reset pointer
                 csv_data = file.read().decode('utf-8')
