@@ -13,8 +13,7 @@ urlpatterns = [
     path('logout/', views.logout_view, name='logout'),
     path('dashboard/', views.dashboard, name='dashboard'),
     path("delete/<int:file_id>/", views.delete_file, name="delete_file"),
-    path('csv-analysis/<int:file_id>/', views.csv_analysis, name='csv-analysis'),
-
+   
 
     path('upload/', views.upload_file, name='upload_file'),
     path('download/<int:file_id>/', views.download_file, name='download_file'),

@@ -1,4 +1,4 @@
-from io import StringIO
+
 import os
 
 import requests
@@ -88,26 +88,6 @@ def upload_file(request):
                 path_in_bucket=file_name,
                 user_email=user_email,
             )
-            import pandas as pd
-         # ✅ Check if file is CSV
-            if file_name.endswith('.csv'):
-                
-                # Read file content from the uploaded file (in memory)
-                file.seek(0)  # Reset pointer
-                csv_data = file.read().decode('utf-8')
-                df = pd.read_csv(StringIO(csv_data))
-
-                # Store summary in session for the next view
-                request.session['csv_summary'] = {
-                    "rows": df.shape[0],
-                    "columns": df.shape[1],
-                    "columns_list": list(df.columns),
-                    "describe": df.describe().to_html(classes='table table-bordered'),
-                }
-                request.session['csv_file_name'] = file_name
-                request.session['csv_preview'] = df.head(10).to_html(classes='table table-striped')
-
-                return redirect('csv_analysis')
 
             
             notify_emails = request.POST.get('notify_emails', '')
@@ -153,54 +133,6 @@ def upload_file(request):
             return redirect('dashboard')
 
     return redirect('dashboard')
-import pandas as pd # For rendering charts without display
-import matplotlib.pyplot as plt
-import base64
-from io import BytesIO
-def csv_analysis(request, file_id):
-    # Get the file from database
-    file_obj = get_object_or_404(UploadedFile, id=file_id)
-
-    if not file_obj.file.name.endswith('.csv'):
-        return render(request, 'error.html', {'message': 'This is not a CSV file.'})
-
-    # Load CSV into pandas
-    file_path = file_obj.file.path
-    df = pd.read_csv(file_path)
-
-    # Basic details
-    rows, cols = df.shape
-    columns = list(df.columns)
-
-    # Preview first 5 rows
-    preview_data = df.head().to_html(classes='table table-bordered table-sm', index=False)
-
-    # Summary statistics
-    summary = df.describe().to_html(classes='table table-bordered table-sm')
-
-    # Generate chart (example: bar chart of first numeric column)
-    img = None
-    numeric_cols = df.select_dtypes(include=['number']).columns
-    if len(numeric_cols) > 0:
-        plt.figure(figsize=(6,4))
-        df[numeric_cols[0]].head(10).plot(kind='bar', title=f"Top 10 {numeric_cols[0]}")
-        plt.tight_layout()
-        buffer = BytesIO()
-        plt.savefig(buffer, format='png')
-        buffer.seek(0)
-        img = base64.b64encode(buffer.getvalue()).decode('utf-8')
-        buffer.close()
-
-    context = {
-        'file': file_obj,
-        'rows': rows,
-        'cols': cols,
-        'columns': columns,
-        'preview_data': preview_data,
-        'summary': summary,
-        'chart': img
-    }
-    return render(request, 'csv_analysis.html', context)
 
 from .models import Notification
 
