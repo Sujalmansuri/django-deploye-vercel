@@ -14,3 +14,4 @@ psycopg2-binary==2.9.10
 supabase==2.15.1
 supafunc==0.9.4
 pandas
+matplotlib

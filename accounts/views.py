@@ -153,21 +153,54 @@ def upload_file(request):
             return redirect('dashboard')
 
     return redirect('dashboard')
+import pandas as pd # For rendering charts without display
+import matplotlib.pyplot as plt
+import base64
+from io import BytesIO
+def csv_analysis(request, file_id):
+    # Get the file from database
+    file_obj = get_object_or_404(UploadedFile, id=file_id)
 
-def csv_analysis(request):
-    csv_summary = request.session.get('csv_summary')
-    csv_preview = request.session.get('csv_preview')
-    file_name = request.session.get('csv_file_name')
+    if not file_obj.file.name.endswith('.csv'):
+        return render(request, 'error.html', {'message': 'This is not a CSV file.'})
 
-    if not csv_summary:
-        messages.error(request, "No CSV file data found.")
-        return redirect('dashboard')
+    # Load CSV into pandas
+    file_path = file_obj.file.path
+    df = pd.read_csv(file_path)
 
-    return render(request, 'csv_analysis.html', {
-        'summary': csv_summary,
-        'preview': csv_preview,
-        'file_name': file_name
-    })
+    # Basic details
+    rows, cols = df.shape
+    columns = list(df.columns)
+
+    # Preview first 5 rows
+    preview_data = df.head().to_html(classes='table table-bordered table-sm', index=False)
+
+    # Summary statistics
+    summary = df.describe().to_html(classes='table table-bordered table-sm')
+
+    # Generate chart (example: bar chart of first numeric column)
+    img = None
+    numeric_cols = df.select_dtypes(include=['number']).columns
+    if len(numeric_cols) > 0:
+        plt.figure(figsize=(6,4))
+        df[numeric_cols[0]].head(10).plot(kind='bar', title=f"Top 10 {numeric_cols[0]}")
+        plt.tight_layout()
+        buffer = BytesIO()
+        plt.savefig(buffer, format='png')
+        buffer.seek(0)
+        img = base64.b64encode(buffer.getvalue()).decode('utf-8')
+        buffer.close()
+
+    context = {
+        'file': file_obj,
+        'rows': rows,
+        'cols': cols,
+        'columns': columns,
+        'preview_data': preview_data,
+        'summary': summary,
+        'chart': img
+    }
+    return render(request, 'csv_analysis.html', context)
 
 from .models import Notification
 
