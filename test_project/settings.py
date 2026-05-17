@@ -27,8 +27,12 @@ SECRET_KEY = 'django-insecure-8dd%%7^2!-vxrysa!rxps&q=$!*4n6gtaifflild$0hhh3h7@8
 DEBUG = False
 
 
-
-ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'instadatacom.vercel.app','instadata-4uu2awzab-sujalmansuri42-gmailcoms-projects.vercel.app',]  # ✅ Vercel preview/production domain]
+ALLOWED_HOSTS = [
+    ".vercel.app",
+    "localhost",
+    "127.0.0.1",
+]
+# ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'instadatacom.vercel.app','instadata-4uu2awzab-sujalmansuri42-gmailcoms-projects.vercel.app',]  # ✅ Vercel preview/production domain]
 
 
 

@@ -22,11 +22,31 @@ from accounts import views
 load_dotenv()
 
 # Supabase config
+# Supabase config
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_API_KEY = os.getenv("SUPABASE_API_KEY")
 SUPABASE_PROJECT_ID = os.getenv("SUPABASE_PROJECT_ID")
 BUCKET_NAME = "uploads"
-supabase = create_client(SUPABASE_URL, SUPABASE_API_KEY)
+
+
+def get_supabase():
+    """
+    Safely create Supabase client only when needed.
+    Prevents Vercel startup crashes.
+    """
+
+    if not SUPABASE_URL:
+        raise Exception("SUPABASE_URL is missing")
+
+    if not SUPABASE_API_KEY:
+        raise Exception("SUPABASE_API_KEY is missing")
+
+    if not SUPABASE_URL.startswith("https://"):
+        raise Exception(
+            "SUPABASE_URL must start with https://"
+        )
+
+    return create_client(SUPABASE_URL, SUPABASE_API_KEY)
 
 os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
 
@@ -74,7 +94,9 @@ def upload_file(request):
         
         try:
             
-            upload_response = supabase.storage.from_(supabase_bucket).upload(file_name, file.read())
+            supabase = get_supabase()
+
+            upload_response = supabase.storage.from_(supabase_bucket).upload(file_name,file.read())
             if getattr(upload_response, 'error', None):
                 messages.info(request, f"Upload failed: {upload_response.error.message}")
                 return redirect('dashboard')
@@ -177,6 +199,8 @@ def delete_file(request, file_id):
         if file.user_email != user_email:
             messages.info(request, "Unauthorized: You can only delete your own files.")
             return redirect('dashboard')
+
+        supabase = get_supabase()
 
         bucket = supabase.storage.from_("uploads")
         delete_response = bucket.remove([file.path_in_bucket])
