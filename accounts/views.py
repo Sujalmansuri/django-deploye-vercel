@@ -282,7 +282,6 @@ from django.conf import settings
 from django.http import HttpResponse
 from django.shortcuts import redirect
 
-
 def google_login(request):
 
     try:
@@ -302,7 +301,6 @@ def google_login(request):
 
     except Exception as e:
         return HttpResponse(f"Google Login Error: {str(e)}")
-
 
 def signup_submit(request):
     if request.method == 'POST':
