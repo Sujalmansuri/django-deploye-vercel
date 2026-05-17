@@ -275,39 +275,60 @@ def download_file(request, file_id):
     except requests.RequestException:
         return HttpResponse("Error fetching file.", status=500)
 
-
 def google_login(request):
+
     flow = Flow.from_client_config(
-        client_config=settings.GOOGLE_CREDENTIALS,
+        {
+            "web": {
+                "client_id": settings.GOOGLE_CLIENT_ID,
+                "client_secret": settings.GOOGLE_CLIENT_SECRET,
+                "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+                "token_uri": "https://oauth2.googleapis.com/token",
+            }
+        },
         scopes=[
-            'https://www.googleapis.com/auth/userinfo.profile',
-            'https://www.googleapis.com/auth/userinfo.email',
-            'openid'
+            "https://www.googleapis.com/auth/userinfo.profile",
+            "https://www.googleapis.com/auth/userinfo.email",
+            "openid",
         ],
         redirect_uri="https://instadatacom.vercel.app/google/callback/"
     )
+
     authorization_url, state = flow.authorization_url()
-    request.session['state'] = state
+
+    request.session["state"] = state
+
     return redirect(authorization_url)
 
-
 def google_callback(request):
+
     flow = Flow.from_client_config(
-        settings.GOOGLE_CREDENTIALS,
+        {
+            "web": {
+                "client_id": settings.GOOGLE_CLIENT_ID,
+                "client_secret": settings.GOOGLE_CLIENT_SECRET,
+                "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+                "token_uri": "https://oauth2.googleapis.com/token",
+            }
+        },
         scopes=[
-            'https://www.googleapis.com/auth/userinfo.email',
-            'https://www.googleapis.com/auth/userinfo.profile',
-            'openid'
+            "https://www.googleapis.com/auth/userinfo.email",
+            "https://www.googleapis.com/auth/userinfo.profile",
+            "openid",
         ],
         redirect_uri="https://instadatacom.vercel.app/google/callback/"
     )
-    flow.fetch_token(authorization_response=request.build_absolute_uri())
+
+    flow.fetch_token(
+        authorization_response=request.build_absolute_uri()
+    )
 
     credentials = flow.credentials
-    try:
-        id_info = id_token.verify_oauth2_token(credentials.id_token, google_requests.Request())
-    except ValueError:
-        return redirect("login_page")
+
+    id_info = id_token.verify_oauth2_token(
+        credentials.id_token,
+        google_requests.Request(),
+    )
 
     email = id_info.get("email")
     name = id_info.get("name")
@@ -326,8 +347,7 @@ def google_callback(request):
     request.session["user_name"] = name
     request.session["user_picture"] = picture
 
-    return redirect('dashboard')
-
+    return redirect("dashboard")
 
 def signup_submit(request):
     if request.method == 'POST':
