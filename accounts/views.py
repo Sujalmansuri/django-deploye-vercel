@@ -17,7 +17,6 @@ from django.contrib.auth.hashers import make_password, check_password
 from django.contrib.auth import authenticate, login, logout
 from .models import User_Data, UploadedFile
 from .forms import UploadFileForm
-from accounts import views
 
 load_dotenv()
 
@@ -160,21 +159,35 @@ from .models import Notification
 
 def dashboard(request):
     user_email = request.session.get('user_email')
+
     if not user_email:
         return redirect('home')
 
     user_name = request.session.get('user_name', 'Guest')
 
     query = request.GET.get('q', '')
-    files = UploadedFile.objects.filter(title__icontains=query) if query else UploadedFile.objects.all()
+
+    files = UploadedFile.objects.filter(
+        title__icontains=query
+    ) if query else UploadedFile.objects.all()
+
     files = files.order_by('-uploaded_at')
 
     form = UploadFileForm()
 
+    unread_notifications = []
+    unread_count = 0
+
     try:
-        user= User_Data.objects.get(email=user_email)
-        unread_notifications = Notification.objects.filter(user=user, is_read=False).order_by('-created_at')
+        user = User_Data.objects.get(email=user_email)
+
+        unread_notifications = Notification.objects.filter(
+            user=user,
+            is_read=False
+        ).order_by('-created_at')
+
         unread_count = unread_notifications.count()
+
     except User_Data.DoesNotExist:
         pass
 
@@ -187,6 +200,7 @@ def dashboard(request):
         'unread_notifications': unread_notifications,
         'unread_notifications_count': unread_count,
     })
+
 def delete_file(request, file_id):
     try:
         user_email = request.session.get('user_email')
