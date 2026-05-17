@@ -293,12 +293,12 @@ def google_login(request):
             {
                 "provider": "google",
                 "options": {
-                    "redirect_to": "https://instadatacom.vercel.app/"
+                    "redirect_to": "https://instadatacom.vercel.app/dashboard/"
                 }
             }
         )
 
-        return redirect(dashboard)
+        return redirect(response.url)
 
     except Exception as e:
         return HttpResponse(f"Google Login Error: {str(e)}")
