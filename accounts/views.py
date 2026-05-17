@@ -279,22 +279,30 @@ from google_auth_oauthlib.flow import Flow
 from django.shortcuts import redirect
 from django.conf import settings
 
+from django.http import HttpResponse
+from django.shortcuts import redirect
+
+
 def google_login(request):
 
-    supabase = get_supabase()
+    try:
 
-    response = supabase.auth.sign_in_with_oauth(
-        {
-            "provider": "google",
-            "options": {
-                "redirect_to": "https://instadatacom.vercel.app/dashboard/"
+        supabase = get_supabase()
+
+        response = supabase.auth.sign_in_with_oauth(
+            {
+                "provider": "google",
+                "options": {
+                    "redirect_to": "https://instadatacom.vercel.app/"
+                }
             }
-        }
-    )
+        )
 
-    return redirect(response.url)
+        return redirect(response.url)
 
-    
+    except Exception as e:
+        return HttpResponse(f"Google Login Error: {str(e)}")
+
 
 def signup_submit(request):
     if request.method == 'POST':
