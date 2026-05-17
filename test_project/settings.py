@@ -101,7 +101,7 @@ from dotenv import load_dotenv
 
 # Load the .env file (make sure this is at the top of your settings.py)
 load_dotenv()
-
+SITE_ID = 1
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',  # Change this if you're using a different database (e.g., mysql)
