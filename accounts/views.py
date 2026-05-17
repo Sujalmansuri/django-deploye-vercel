@@ -275,49 +275,75 @@ def download_file(request, file_id):
     except requests.RequestException:
         return HttpResponse("Error fetching file.", status=500)
 
+from google_auth_oauthlib.flow import Flow
+from django.shortcuts import redirect
+from django.conf import settings
+
+
 def google_login(request):
+
+    client_id = settings.GOOGLE_CLIENT_ID
+    client_secret = settings.GOOGLE_CLIENT_SECRET
+
+    if not client_id:
+        return HttpResponse("GOOGLE_CLIENT_ID missing")
+
+    if not client_secret:
+        return HttpResponse("GOOGLE_CLIENT_SECRET missing")
 
     flow = Flow.from_client_config(
         {
             "web": {
-                "client_id": settings.GOOGLE_CLIENT_ID,
-                "client_secret": settings.GOOGLE_CLIENT_SECRET,
+                "client_id": client_id,
+                "client_secret": client_secret,
                 "auth_uri": "https://accounts.google.com/o/oauth2/auth",
                 "token_uri": "https://oauth2.googleapis.com/token",
             }
         },
         scopes=[
-            "https://www.googleapis.com/auth/userinfo.profile",
-            "https://www.googleapis.com/auth/userinfo.email",
             "openid",
+            "https://www.googleapis.com/auth/userinfo.email",
+            "https://www.googleapis.com/auth/userinfo.profile",
         ],
-        redirect_uri="https://instadatacom.vercel.app/google/callback/"
     )
 
-    authorization_url, state = flow.authorization_url()
+    flow.redirect_uri = "https://instadatacom.vercel.app/google/callback/"
+
+    authorization_url, state = flow.authorization_url(
+        access_type="offline",
+        include_granted_scopes="true"
+    )
 
     request.session["state"] = state
 
     return redirect(authorization_url)
 
+from google.oauth2 import id_token
+from google.auth.transport import requests as google_requests
+
+
 def google_callback(request):
+
+    client_id = settings.GOOGLE_CLIENT_ID
+    client_secret = settings.GOOGLE_CLIENT_SECRET
 
     flow = Flow.from_client_config(
         {
             "web": {
-                "client_id": settings.GOOGLE_CLIENT_ID,
-                "client_secret": settings.GOOGLE_CLIENT_SECRET,
+                "client_id": client_id,
+                "client_secret": client_secret,
                 "auth_uri": "https://accounts.google.com/o/oauth2/auth",
                 "token_uri": "https://oauth2.googleapis.com/token",
             }
         },
         scopes=[
+            "openid",
             "https://www.googleapis.com/auth/userinfo.email",
             "https://www.googleapis.com/auth/userinfo.profile",
-            "openid",
         ],
-        redirect_uri="https://instadatacom.vercel.app/google/callback/"
     )
+
+    flow.redirect_uri = "https://instadatacom.vercel.app/google/callback/"
 
     flow.fetch_token(
         authorization_response=request.build_absolute_uri()
@@ -325,21 +351,21 @@ def google_callback(request):
 
     credentials = flow.credentials
 
-    id_info = id_token.verify_oauth2_token(
+    idinfo = id_token.verify_oauth2_token(
         credentials.id_token,
         google_requests.Request(),
+        client_id
     )
 
-    email = id_info.get("email")
-    name = id_info.get("name")
-    picture = id_info.get("picture")
+    email = idinfo.get("email")
+    name = idinfo.get("name")
+    picture = idinfo.get("picture")
 
     user, created = User_Data.objects.get_or_create(
         email=email,
         defaults={
             "full_name": name,
-            "is_google_user": True,
-            "password": None
+            "is_google_user": True
         }
     )
 
@@ -348,6 +374,7 @@ def google_callback(request):
     request.session["user_picture"] = picture
 
     return redirect("dashboard")
+
 
 def signup_submit(request):
     if request.method == 'POST':
