@@ -20,7 +20,7 @@ urlpatterns = [
 
     
     # Google OAuth Routes
-    path('google/login/', views.google_login, name='google_login')
+    path('google/login/', views.google_login, name='google_login'),
 
     # Email/Password Login Handler
     path('login-handler/', views.login_view, name='login'),
