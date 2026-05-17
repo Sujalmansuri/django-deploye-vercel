@@ -298,7 +298,7 @@ def google_login(request):
             }
         )
 
-        return redirect(response.url)
+        return redirect(dashboard)
 
     except Exception as e:
         return HttpResponse(f"Google Login Error: {str(e)}")
