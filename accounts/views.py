@@ -284,7 +284,7 @@ def google_login(request):
             'https://www.googleapis.com/auth/userinfo.email',
             'openid'
         ],
-        redirect_uri="https://instadatacom.vercel.app/complete/google/"
+        redirect_uri="https://instadatacom.vercel.app/google/callback/"
     )
     authorization_url, state = flow.authorization_url()
     request.session['state'] = state
@@ -299,7 +299,7 @@ def google_callback(request):
             'https://www.googleapis.com/auth/userinfo.profile',
             'openid'
         ],
-        redirect_uri="https://instadatacom.vercel.app/complete/google/"
+        redirect_uri="https://instadatacom.vercel.app/google/callback/"
     )
     flow.fetch_token(authorization_response=request.build_absolute_uri())
 

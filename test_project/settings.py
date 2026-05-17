@@ -26,7 +26,9 @@ SECRET_KEY = 'django-insecure-8dd%%7^2!-vxrysa!rxps&q=$!*4n6gtaifflild$0hhh3h7@8
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 
-
+AUTHENTICATION_BACKENDS = (
+    'django.contrib.auth.backends.ModelBackend',
+)
 ALLOWED_HOSTS = [
     ".vercel.app",
     "localhost",
@@ -46,10 +48,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'allauth',
-    'allauth.account',
-    'allauth.socialaccount',
-    'allauth.socialaccount.providers.google',
+    
     'accounts',
     'social_django', 
 ]
@@ -65,10 +64,6 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-AUTHENTICATION_BACKENDS = (
-    'django.contrib.auth.backends.ModelBackend',
-    'allauth.account.auth_backends.AuthenticationBackend',
-)
 
 ROOT_URLCONF = 'test_project.urls'
 
@@ -101,7 +96,7 @@ from dotenv import load_dotenv
 
 # Load the .env file (make sure this is at the top of your settings.py)
 load_dotenv()
-SITE_ID = 1
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',  # Change this if you're using a different database (e.g., mysql)
@@ -109,7 +104,7 @@ DATABASES = {
         'USER': os.getenv('DB_USER'),
         'PASSWORD': os.getenv('DB_PASSWORD'),
         'HOST': os.getenv('DB_HOST', 'localhost'),
-        'PORT': os.getenv('DB_PORT', '6543'),   
+        'PORT': os.getenv('DB_PORT', '5432'),   
         'OPTIONS': {
             'sslmode': 'require',  # ✅ Enforces SSL for Supabase
         },
@@ -220,3 +215,7 @@ EMAIL_USE_TLS = True
 EMAIL_HOST_USER =os.getenv('EMAIL_HOST_USER')  # your email
 EMAIL_HOST_PASSWORD =os.getenv('EMAIL_HOST_PASSWORD')
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+
+CSRF_TRUSTED_ORIGINS = [
+    "https://*.vercel.app",
+]
