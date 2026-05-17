@@ -279,102 +279,22 @@ from google_auth_oauthlib.flow import Flow
 from django.shortcuts import redirect
 from django.conf import settings
 
-
 def google_login(request):
 
-    client_id = settings.GOOGLE_CLIENT_ID
-    client_secret = settings.GOOGLE_CLIENT_SECRET
+    supabase = get_supabase()
 
-    if not client_id:
-        return HttpResponse("GOOGLE_CLIENT_ID missing")
-
-    if not client_secret:
-        return HttpResponse("GOOGLE_CLIENT_SECRET missing")
-
-    flow = Flow.from_client_config(
+    response = supabase.auth.sign_in_with_oauth(
         {
-            "web": {
-                "client_id": client_id,
-                "client_secret": client_secret,
-                "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-                "token_uri": "https://oauth2.googleapis.com/token",
+            "provider": "google",
+            "options": {
+                "redirect_to": "https://instadatacom.vercel.app/dashboard/"
             }
-        },
-        scopes=[
-            "openid",
-            "https://www.googleapis.com/auth/userinfo.email",
-            "https://www.googleapis.com/auth/userinfo.profile",
-        ],
-    )
-
-    flow.redirect_uri = "https://instadatacom.vercel.app/google/callback/"
-
-    authorization_url, state = flow.authorization_url(
-        access_type="offline",
-        include_granted_scopes="true"
-    )
-
-    request.session["state"] = state
-
-    return redirect(authorization_url)
-
-from google.oauth2 import id_token
-from google.auth.transport import requests as google_requests
-
-
-def google_callback(request):
-
-    client_id = settings.GOOGLE_CLIENT_ID
-    client_secret = settings.GOOGLE_CLIENT_SECRET
-
-    flow = Flow.from_client_config(
-        {
-            "web": {
-                "client_id": client_id,
-                "client_secret": client_secret,
-                "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-                "token_uri": "https://oauth2.googleapis.com/token",
-            }
-        },
-        scopes=[
-            "openid",
-            "https://www.googleapis.com/auth/userinfo.email",
-            "https://www.googleapis.com/auth/userinfo.profile",
-        ],
-    )
-
-    flow.redirect_uri = "https://instadatacom.vercel.app/google/callback/"
-
-    flow.fetch_token(
-        authorization_response=request.build_absolute_uri()
-    )
-
-    credentials = flow.credentials
-
-    idinfo = id_token.verify_oauth2_token(
-        credentials.id_token,
-        google_requests.Request(),
-        client_id
-    )
-
-    email = idinfo.get("email")
-    name = idinfo.get("name")
-    picture = idinfo.get("picture")
-
-    user, created = User_Data.objects.get_or_create(
-        email=email,
-        defaults={
-            "full_name": name,
-            "is_google_user": True
         }
     )
 
-    request.session["user_email"] = email
-    request.session["user_name"] = name
-    request.session["user_picture"] = picture
+    return redirect(response.url)
 
-    return redirect("dashboard")
-
+    
 
 def signup_submit(request):
     if request.method == 'POST':
